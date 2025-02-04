@@ -1,5 +1,8 @@
 'use client';
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
   DialogContent,
@@ -14,35 +17,72 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Link, ClipboardList, Trash2 } from 'lucide-react';
 import { useIngestion } from '@/(features)/generative-ai/context/ingestion-context';
+
+// Define our form schema using Zod.
+const ingestionSchema = z.object({
+  description: z.string().nonempty('Description is required'),
+  // files is an array of File objects and must contain at least one file.
+  files: z.array(z.instanceof(File)).min(1, 'At least one file is required'),
+});
+
+// Infer the form values type from the schema.
+type IngestionFormValues = z.infer<typeof ingestionSchema>;
+
 const IngestionUploadDialog = () => {
   const { openIngestionDialog, ingestionDialogOpen, bulkIndexCSV } =
     useIngestion();
+
+  // Reference for the hidden file input.
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<File[]>([]);
+
+  // Initialize react-hook-form with zodResolver.
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<IngestionFormValues>({
+    resolver: zodResolver(ingestionSchema),
+    defaultValues: {
+      description: '',
+      files: [],
+    },
+  });
+
+  // Watch files for display.
+  const files = watch('files');
 
   const handleFileClick = () => {
     fileInputRef.current?.click();
   };
 
+  // When files are selected, update the form value.
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setFiles([...files, ...Array.from(event.target.files)]);
+      // Convert FileList to array.
+      const selectedFiles = Array.from(event.target.files);
+      // Append new files to any existing ones.
+      setValue('files', [...(files || []), ...selectedFiles], {
+        shouldValidate: true,
+      });
     }
   };
 
   const removeFile = (fileName: string) => {
-    setFiles(files.filter((file) => file.name !== fileName));
+    const updatedFiles = (files || []).filter((file) => file.name !== fileName);
+    setValue('files', updatedFiles, { shouldValidate: true });
   };
 
-  const handleStartIngestion = async () => {
-    await bulkIndexCSV('test', files);
+  const onSubmit = async (data: IngestionFormValues) => {
+    await bulkIndexCSV(data.description, data.files);
   };
 
   return (
     <Dialog open={ingestionDialogOpen} onOpenChange={openIngestionDialog}>
       <DialogTrigger asChild>
         <Button
-          onClick={() => openIngestionDialog(!openIngestionDialog)}
+          onClick={() => openIngestionDialog(!ingestionDialogOpen)}
           variant='outline'
           className='grow mt-1 mr-3 ml-3'
         >
@@ -58,101 +98,120 @@ const IngestionUploadDialog = () => {
             matters most to you.
           </DialogDescription>
         </DialogHeader>
-
-        <div className='w-full mx-auto border bg-white shadow rounded-2xl p-6'>
-          <div className='grid w-full '>
-            <Label
-              className='font-bold items-center flex'
-              htmlFor='description'
-            >
-              <span className='text-red-500 text-lg'>*</span>
-              Description
-            </Label>
-            <Textarea
-              maxLength={200}
-              placeholder='Add a short description about the ingestion sources'
-              id='description'
-            />
-          </div>
-          <div className='mt-4 border border-dashed border-gray-300 rounded-lg p-1 flex flex-col items-center'>
-            <Upload className='w-8 h-8 text-gray-500' />
-            <p className='mt-2 text-gray-600'>Upload sources</p>
-            <p className='text-xs text-gray-500'>
-              Drag & drop or{' '}
-              <span
-                onClick={handleFileClick}
-                className='text-blue-500 cursor-pointer'
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className='w-full mx-auto border bg-white shadow rounded-2xl p-6'>
+            {/* Description Field */}
+            <div className='grid w-full'>
+              <Label
+                className='font-bold items-center flex'
+                htmlFor='description'
               >
-                choose file
-              </span>{' '}
-              to upload
-              <input
-                onChange={handleFileChange}
-                type='file'
-                ref={fileInputRef}
-                className='hidden'
-                multiple
+                <span className='text-red-500 text-lg'>*</span>
+                Description
+              </Label>
+              <Textarea
+                maxLength={200}
+                placeholder='Add a short description about the ingestion sources'
+                id='description'
+                {...register('description')}
               />
-            </p>
-            <p className='text-xs text-gray-400 mt-1'>
-              Supported file types: CSV, .txt, Markdown, Google Docs, PDF, Word
-            </p>
-          </div>
+              {errors.description && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.description.message}
+                </p>
+              )}
+            </div>
 
-          <div className='mt-4 grid grid-cols-3 gap-3'>
-            <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
-              <FileText className='w-6 h-6 text-gray-600' />
-              <p className='text-xs text-gray-600 mt-1'>Google Docs</p>
-            </div>
-            <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
-              <Link className='w-6 h-6 text-gray-600' />
-              <p className='text-xs text-gray-600 mt-1'>Website</p>
-            </div>
-            <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
-              <ClipboardList className='w-6 h-6 text-gray-600' />
-              <p className='text-xs text-gray-600 mt-1'>Copied text</p>
-            </div>
-          </div>
-
-          <div className='mt-4 text-gray-500 text-xs flex justify-between'>
-            <span onClick={() => openIngestionDialog(false)}>Source limit</span>
-            <span>{files.length} / 50</span>
-          </div>
-          {files.length > 0 && (
-            <div className='mt-4 p-2 bg-gray-100 rounded-lg'>
-              <p className='text-sm font-medium text-gray-700'>
-                Selected Files:
+            {/* File Upload Section */}
+            <div className='mt-4 border border-dashed border-gray-300 rounded-lg p-1 flex flex-col items-center'>
+              <Upload className='w-8 h-8 text-gray-500' />
+              <p className='mt-2 text-gray-600'>Upload sources</p>
+              <p className='text-xs text-gray-500'>
+                Drag & drop or{' '}
+                <span
+                  onClick={handleFileClick}
+                  className='text-blue-500 cursor-pointer'
+                >
+                  choose file
+                </span>{' '}
+                to upload
+                <input
+                  onChange={handleFileChange}
+                  type='file'
+                  ref={fileInputRef}
+                  className='hidden'
+                  multiple
+                />
               </p>
-              <ul className='mt-2 space-y-2 max-h-40 overflow-y-scroll bg-white p-2 rounded-lg shadow-inner scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200'>
-                {files.map((file, index) => (
-                  <li
-                    key={index}
-                    className='flex justify-between items-center p-2 border rounded-md'
-                  >
-                    <span className='text-sm text-gray-700 truncate'>
-                      {file.name}
-                    </span>
-                    <button
-                      onClick={() => removeFile(file.name)}
-                      className='text-red-500 hover:text-red-700'
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <p className='text-xs text-gray-400 mt-1'>
+                Supported file types: CSV, .txt, Markdown, Google Docs, PDF,
+                Word
+              </p>
+              {errors.files && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.files.message as string}
+                </p>
+              )}
             </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button
-            onClick={handleStartIngestion}
-            disabled={files.length < 1}
-            type='submit'
-          >
-            Start ingestion
-          </Button>
-        </DialogFooter>
+
+            {/* Additional Source Options: Google Docs, Website, Copied Text */}
+            <div className='mt-4 grid grid-cols-3 gap-3'>
+              <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
+                <FileText className='w-6 h-6 text-gray-600' />
+                <p className='text-xs text-gray-600 mt-1'>Google Docs</p>
+              </div>
+              <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
+                <Link className='w-6 h-6 text-gray-600' />
+                <p className='text-xs text-gray-600 mt-1'>Website</p>
+              </div>
+              <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
+                <ClipboardList className='w-6 h-6 text-gray-600' />
+                <p className='text-xs text-gray-600 mt-1'>Copied text</p>
+              </div>
+            </div>
+
+            {/* File Count and Preview */}
+            <div className='mt-4 text-gray-500 text-xs flex justify-between'>
+              <span>Source limit</span>
+              <span>{files?.length || 0} / 50</span>
+            </div>
+            {files && files.length > 0 && (
+              <div className='mt-4 p-2 bg-gray-100 rounded-lg'>
+                <p className='text-sm font-medium text-gray-700'>
+                  Selected Files:
+                </p>
+                <ul className='mt-2 space-y-2 max-h-40 overflow-y-scroll bg-white p-2 rounded-lg shadow-inner scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200'>
+                  {files.map((file, index) => (
+                    <li
+                      key={index}
+                      className='flex justify-between items-center p-2 border rounded-md'
+                    >
+                      <span className='text-sm text-gray-700 truncate'>
+                        {file.name}
+                      </span>
+                      <button
+                        type='button'
+                        onClick={() => removeFile(file.name)}
+                        className='text-red-500 hover:text-red-700'
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              className='mt-4'
+              disabled={!(files && files.length > 0)}
+              type='submit'
+            >
+              Start ingestion
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

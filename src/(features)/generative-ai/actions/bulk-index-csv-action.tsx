@@ -92,8 +92,8 @@ export const BulkIndexCSVAction = async (
                 index: 'ingestions',
                 document: {
                   ingestion_description: cleanDescription,
-                  file_name: cleanFileName,
-                  index_name: indexName,
+                  files: cleanFileName,
+                  index_name: onlyCSVFiles,
                   created_at: new Date(),
                   total_documents: data.length,
                 },
