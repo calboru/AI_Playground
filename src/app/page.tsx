@@ -1,7 +1,10 @@
 import IngestionSources from './components/ingestion-sources';
 import IngestedContent from './components/ingested-content';
+import { InitializeIndexes } from '@/clients/elastic-search';
 
-export default function Home() {
+export default async function Home() {
+  await InitializeIndexes();
+
   return (
     <div className='flex flex-col h-lvh '>
       <main className='flex flex-row space-x-4 w-full h-[90%]  p-2  justify-around'>

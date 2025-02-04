@@ -22,7 +22,7 @@ import { useIngestion } from '@/(features)/generative-ai/context/ingestion-conte
 const ingestionSchema = z.object({
   description: z.string().nonempty('Description is required'),
   // files is an array of File objects and must contain at least one file.
-  files: z.array(z.instanceof(File)).min(1, 'At least one file is required'),
+  files: z.array(z.any()).min(1, 'At least one file is required'),
 });
 
 // Infer the form values type from the schema.

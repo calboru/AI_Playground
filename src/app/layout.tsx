@@ -4,6 +4,7 @@ import './globals.css';
 import MainLayoutHeader from './components/main-layout-header';
 import { IngestionProvider } from '@/(features)/generative-ai/context/ingestion-context';
 import { Toaster } from '@/components/ui/toaster';
+import { InfiniteIngestionsProvider } from '@/(features)/generative-ai/context/infinite-ingestions';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -30,7 +31,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased grow h-lvh  bg-slate-100 overflow-hidden`}
       >
         <MainLayoutHeader />
-        <IngestionProvider>{children}</IngestionProvider>
+        <IngestionProvider>
+          <InfiniteIngestionsProvider>{children}</InfiniteIngestionsProvider>
+        </IngestionProvider>
         <Toaster />
       </body>
     </html>

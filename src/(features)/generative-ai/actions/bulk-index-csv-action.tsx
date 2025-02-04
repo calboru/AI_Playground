@@ -1,15 +1,8 @@
 'use server';
-import { Client } from '@elastic/elasticsearch';
+
 import { parseString } from '@fast-csv/parse';
 import { faker } from '@faker-js/faker';
-
-const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL ?? 'http://localhost:9201',
-  auth: {
-    username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
-    password: process.env.ELASTICSEARCH_PASSWORD || 'admin',
-  },
-});
+import { ESClient } from '@/clients/elastic-search';
 
 const BulkIndex = async (indexName: string, data: unknown[]) => {
   if (data.length === 0) return;
@@ -20,7 +13,7 @@ const BulkIndex = async (indexName: string, data: unknown[]) => {
       doc,
     ]);
 
-    const bulkResponse = await esClient.bulk({
+    const bulkResponse = await ESClient.bulk({
       refresh: true,
       body: operations,
     });
@@ -46,10 +39,10 @@ export const BulkIndexCSVAction = async (
   };
 
   return new Promise<{ success: boolean; error: string; indexName: string }>(
-    (resolve, reject) => {
+    async (resolve, reject) => {
       const data: unknown[] = [];
       const cleanDescription = ingestionDescription?.trim() || 'No description';
-      const indexName = 'ai-' + faker.string.alpha(10).toLowerCase();
+      const indexName = 'raw-' + faker.string.alpha(10).toLowerCase();
       payload.indexName = indexName;
 
       const onlyCSVFiles = ingestionFiles.filter(
@@ -74,7 +67,8 @@ export const BulkIndexCSVAction = async (
             reject(payload);
           })
           .on('data', (row) => {
-            data.push(row);
+            const rowWithFileName = { ...row, file_name: cleanFileName };
+            data.push(rowWithFileName);
           })
           .on('end', async () => {
             try {
@@ -88,12 +82,12 @@ export const BulkIndexCSVAction = async (
 
               await BulkIndex(indexName, data);
 
-              await esClient.index({
+              await ESClient.index({
                 index: 'ingestions',
                 document: {
                   ingestion_description: cleanDescription,
-                  files: cleanFileName,
-                  index_name: onlyCSVFiles,
+                  files: onlyCSVFiles.map((file) => file.name),
+                  index_name: indexName,
                   created_at: new Date(),
                   total_documents: data.length,
                 },
@@ -110,10 +104,10 @@ export const BulkIndexCSVAction = async (
 
               //delete index no need to keep junk user can ingest again.
               //delete ingestion content
-              await esClient.indices.delete({ index: indexName });
+              await ESClient.indices.delete({ index: indexName });
 
               //delete ingestion project
-              await esClient.deleteByQuery({
+              await ESClient.deleteByQuery({
                 index: 'ingestions',
                 query: {
                   match: { index_name: indexName },
