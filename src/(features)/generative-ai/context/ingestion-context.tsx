@@ -8,6 +8,7 @@ import React, {
   Dispatch,
 } from 'react';
 import { BulkIndexCSVAction } from '../actions/bulk-index-csv-action';
+import { useToast } from '@/hooks/use-toast';
 
 interface IIngestionContext {
   ingestionDialogOpen: boolean;
@@ -28,7 +29,8 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [ingestionDialogOpen, setIngestionDialogOpen] = useState(false);
-  console.log('dialog open', ingestionDialogOpen);
+  const { toast } = useToast();
+
   const handleBulkIndexCSV = async (
     ingestionDescription: string,
     ingestionFiles: File[]
@@ -38,9 +40,18 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
       await BulkIndexCSVAction(ingestionDescription, ingestionFiles);
       setIsLoading(false);
       setIngestionDialogOpen(false);
+      toast({
+        title: 'Ingestion',
+        description: 'Ingestion completed successfully.',
+      });
     } catch (error) {
       setIsLoading(false);
       console.log(error);
+      toast({
+        variant: 'destructive',
+        title: 'Unable to ingest files',
+        description: JSON.stringify(error),
+      });
     }
   };
 

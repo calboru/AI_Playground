@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import MainLayoutHeader from './components/main-layout-header';
 import { IngestionProvider } from '@/(features)/generative-ai/context/ingestion-context';
-
+import { Toaster } from '@/components/ui/toaster';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -31,6 +31,7 @@ export default function RootLayout({
       >
         <MainLayoutHeader />
         <IngestionProvider>{children}</IngestionProvider>
+        <Toaster />
       </body>
     </html>
   );

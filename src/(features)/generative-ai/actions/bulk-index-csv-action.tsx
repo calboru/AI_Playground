@@ -105,8 +105,21 @@ export const BulkIndexCSVAction = async (
               payload.success = true;
               resolve(payload);
             } catch (error) {
+              payload.error = JSON.stringify(error);
+              payload.success = false;
+
               //delete index no need to keep junk user can ingest again.
+              //delete ingestion content
               await esClient.indices.delete({ index: indexName });
+
+              //delete ingestion project
+              await esClient.deleteByQuery({
+                index: 'ingestions',
+                query: {
+                  match: { index_name: indexName },
+                },
+              });
+
               reject(error);
             }
           });
