@@ -13,8 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Link, ClipboardList, Trash2 } from 'lucide-react';
-import { BulkIndexCSVAction } from '../actions/bulk-index-csv-action';
+import { useIngestion } from '@/(features)/generative-ai/context/ingestion-context';
 const IngestionUploadDialog = () => {
+  const { openIngestionDialog, ingestionDialogOpen, bulkIndexCSV } =
+    useIngestion();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
 
@@ -33,23 +35,17 @@ const IngestionUploadDialog = () => {
   };
 
   const handleStartIngestion = async () => {
-    const allData: unknown[] = [];
-
-    for (const file of files) {
-      if (file.type !== 'text/csv') {
-        console.warn(`Skipping non-CSV file: ${file.name}`);
-        continue;
-      }
-      await BulkIndexCSVAction('test', file.name, await file.text());
-    }
-
-    console.log('All parsed data:', allData);
+    await bulkIndexCSV('test', files);
   };
 
   return (
-    <Dialog>
+    <Dialog open={ingestionDialogOpen} onOpenChange={openIngestionDialog}>
       <DialogTrigger asChild>
-        <Button variant='outline' className='grow mt-1 mr-3 ml-3'>
+        <Button
+          onClick={() => openIngestionDialog(!openIngestionDialog)}
+          variant='outline'
+          className='grow mt-1 mr-3 ml-3'
+        >
           <Upload />
           <span>Create new</span>
         </Button>
@@ -119,7 +115,7 @@ const IngestionUploadDialog = () => {
           </div>
 
           <div className='mt-4 text-gray-500 text-xs flex justify-between'>
-            <span>Source limit</span>
+            <span onClick={() => openIngestionDialog(false)}>Source limit</span>
             <span>{files.length} / 50</span>
           </div>
           {files.length > 0 && (
