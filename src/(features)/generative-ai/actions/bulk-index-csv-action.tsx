@@ -2,7 +2,9 @@
 
 import { parseString } from '@fast-csv/parse';
 import { faker } from '@faker-js/faker';
-import { ESClient } from '@/clients/elastic-search';
+import { ESClient, InitializeIndexes } from '@/clients/elastic-search';
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const BulkIndex = async (indexName: string, data: unknown[]) => {
   if (data.length === 0) return;
@@ -44,6 +46,8 @@ export const BulkIndexCSVAction = async (
       const cleanDescription = ingestionDescription?.trim() || 'No description';
       const indexName = 'raw-' + faker.string.alpha(10).toLowerCase();
       payload.indexName = indexName;
+
+      await InitializeIndexes();
 
       const onlyCSVFiles = ingestionFiles.filter(
         (file) => file.type === 'text/csv'
@@ -96,6 +100,7 @@ export const BulkIndexCSVAction = async (
               console.log(
                 `Successfully indexed ${data.length} records, index: ${indexName}`
               );
+              await delay(1000);
               payload.success = true;
               resolve(payload);
             } catch (error) {

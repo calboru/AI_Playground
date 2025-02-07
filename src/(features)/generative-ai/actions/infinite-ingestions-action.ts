@@ -1,32 +1,34 @@
 'use server';
-import { ESClient } from '@/clients/elastic-search';
+import { ESClient, InitializeIndexes } from '@/clients/elastic-search';
 import { IngestionType } from '../types/intestion-type';
 import { InfinitePayload } from '@/types/infinite-payload';
 
-export const InfiniteIngestionsAction = async (cursor: {
-  id?: string | undefined;
-  created_at?: Date | undefined;
-}) => {
+export const InfiniteIngestionsAction = async (page: number) => {
   try {
+    const pageSize = 10;
+
     const payload: InfinitePayload<IngestionType> = {
       documents: [],
-      cursor: cursor,
+      cursor: 0,
       hasMore: false,
       totalDocuments: 0,
     };
 
-    const res = await ESClient.search({
+    await InitializeIndexes();
+
+    const searchParams = {
       index: 'ingestions',
-      size: 10,
+      size: pageSize,
+      from: page,
       sort: [
-        { created_at: { order: 'desc' } },
-        { index_name: { order: 'asc' } },
+        { created_at: { order: 'desc' } }, // Sort by created_at descending
       ],
-      search_after: [cursor.created_at, cursor.id],
       query: {
         match_all: {},
       },
-    });
+    };
+
+    const res = await ESClient.search(searchParams);
 
     const docs = res.hits.hits.map((hit) => {
       const source = hit._source as IngestionType;
@@ -34,9 +36,16 @@ export const InfiniteIngestionsAction = async (cursor: {
       return source;
     });
 
-    payload.totalDocuments = (res.hits?.total as { value: number }).value ?? 0;
+    const totalDocuments = (res.hits?.total as { value: number }).value ?? 0;
+
+    payload.totalDocuments = totalDocuments;
     payload.documents = docs ?? [];
-    console.log(payload);
+
+    payload.cursor = page + pageSize;
+
+    payload.hasMore = payload.cursor < totalDocuments;
+
+    console.log('Payload:', payload.cursor);
     return payload;
   } catch (error) {
     console.log(error);

@@ -78,8 +78,19 @@ const IngestionUploadDialog = () => {
     await bulkIndexCSV(data.description, data.files);
   };
 
+  const handleOpenChange = async () => {
+    openIngestionDialog(!ingestionDialogOpen);
+    if (ingestionDialogOpen) {
+      // refreshData();
+    } else {
+      //CLEaR form
+      setValue('files', []);
+      setValue('description', '');
+    }
+  };
+
   return (
-    <Dialog open={ingestionDialogOpen} onOpenChange={openIngestionDialog}>
+    <Dialog open={ingestionDialogOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           onClick={() => openIngestionDialog(!ingestionDialogOpen)}

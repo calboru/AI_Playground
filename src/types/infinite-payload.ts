@@ -1,6 +1,6 @@
 export interface InfinitePayload<T> {
   documents: T[];
-  cursor: unknown;
+  cursor: number;
   hasMore: boolean;
   totalDocuments: number;
 }

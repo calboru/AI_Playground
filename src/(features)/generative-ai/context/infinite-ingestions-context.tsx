@@ -1,12 +1,19 @@
 'use client';
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from 'react';
 import { IngestionType } from '../types/intestion-type';
 import { InfiniteIngestionsAction } from '../actions/infinite-ingestions-action';
+import { useIngestion } from './ingestion-context';
 
 interface IInfiniteIngestionsContext {
   ingestions: IngestionType[];
   isLoading: boolean;
-  fetchMoreIngestions: () => void;
+  fetchMore: () => Promise<void>;
 }
 
 const InfiniteIngestionsContext = createContext<
@@ -18,20 +25,21 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [ingestions, setIngestions] = useState<IngestionType[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const { dataRefreshed } = useIngestion();
 
-  const fetchMoreIngestions = async () => {
+  useEffect(() => {
+    setCursor(0);
+    setIngestions([]);
+  }, [dataRefreshed]);
+
+  const fetchMore = async () => {
     try {
       setIsLoading(true);
-      const lastItem = (ingestions ?? [])[ingestions.length - 1];
-
-      const cursor = {
-        id: lastItem?.id ?? '',
-        created_at: new Date(lastItem?.created_at ?? new Date()),
-      };
 
       const payload = await InfiniteIngestionsAction(cursor);
-
       setIngestions((prev) => [...prev, ...payload.documents]);
+      setCursor(payload.cursor);
 
       setIsLoading(false);
     } catch (error) {
@@ -42,7 +50,11 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
 
   return (
     <InfiniteIngestionsContext.Provider
-      value={{ ingestions, fetchMoreIngestions, isLoading }}
+      value={{
+        ingestions,
+        fetchMore,
+        isLoading,
+      }}
     >
       {children}
     </InfiniteIngestionsContext.Provider>

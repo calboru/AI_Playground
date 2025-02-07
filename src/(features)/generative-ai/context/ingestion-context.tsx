@@ -18,6 +18,8 @@ interface IIngestionContext {
     ingestionDescription: string,
     ingestionFiles: File[]
   ) => Promise<void>;
+  dataRefreshed: Date;
+  refreshData: () => void;
 }
 
 const IngestionContext = createContext<IIngestionContext | undefined>(
@@ -29,6 +31,8 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [ingestionDialogOpen, setIngestionDialogOpen] = useState(false);
+  const [dataRefreshed, setDataRefreshed] = useState<Date>(new Date());
+
   const { toast } = useToast();
 
   const handleBulkIndexCSV = async (
@@ -40,10 +44,13 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
       await BulkIndexCSVAction(ingestionDescription, ingestionFiles);
       setIsLoading(false);
       setIngestionDialogOpen(false);
+
       toast({
         title: 'Ingestion',
         description: 'Ingestion completed successfully.',
       });
+
+      setDataRefreshed(new Date());
     } catch (error) {
       setIsLoading(false);
       console.log(error);
@@ -62,6 +69,8 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
         bulkIndexCSV: handleBulkIndexCSV,
         ingestionDialogOpen,
         openIngestionDialog: setIngestionDialogOpen,
+        dataRefreshed,
+        refreshData: () => setDataRefreshed(new Date()),
       }}
     >
       {children}

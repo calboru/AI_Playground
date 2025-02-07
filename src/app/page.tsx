@@ -1,10 +1,8 @@
+'use client';
 import IngestionSources from './components/ingestion-sources';
 import IngestedContent from './components/ingested-content';
-import { InitializeIndexes } from '@/clients/elastic-search';
 
-export default async function Home() {
-  await InitializeIndexes();
-
+export default function Home() {
   return (
     <div className='flex flex-col h-lvh '>
       <main className='flex flex-row space-x-4 w-full h-[90%]  p-2  justify-around'>
