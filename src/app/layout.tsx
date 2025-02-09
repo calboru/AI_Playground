@@ -35,11 +35,9 @@ export default function RootLayout({
         <MainLayoutHeader />
         <AppProvider>
           <InfiniteIngestionContentProvider>
-            <IngestionProvider>
-              <InfiniteIngestionsProvider>
-                {children}
-              </InfiniteIngestionsProvider>
-            </IngestionProvider>
+            <InfiniteIngestionsProvider>
+              <IngestionProvider>{children}</IngestionProvider>
+            </InfiniteIngestionsProvider>
           </InfiniteIngestionContentProvider>
         </AppProvider>
         <Toaster />

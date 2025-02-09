@@ -10,7 +10,6 @@ import React, {
 import { BulkIndexCSVAction } from '../actions/bulk-index-csv-action';
 import { useToast } from '@/hooks/use-toast';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
-import { useAppContext } from '@/app/app-context';
 
 interface IIngestionContext {
   ingestionDialogOpen: boolean;
@@ -32,11 +31,9 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [ingestionDialogOpen, setIngestionDialogOpen] = useState(false);
 
-  const { fetchMore } = useInfiniteIngestionContent();
+  const { selectIngestion, resetCursor } = useInfiniteIngestionContent();
 
   const { toast } = useToast();
-
-  const { selectIngestion } = useAppContext();
 
   const handleBulkIndexCSV = async (
     ingestionDescription: string,
@@ -50,15 +47,13 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
       );
       setIsLoading(false);
       setIngestionDialogOpen(false);
+      selectIngestion(response.payload);
+      resetCursor();
 
       toast({
         title: 'Ingestion',
         description: 'Ingestion completed successfully.',
       });
-
-      selectIngestion(response.payload);
-
-      await fetchMore(true);
     } catch (error) {
       setIsLoading(false);
       console.log(error);
