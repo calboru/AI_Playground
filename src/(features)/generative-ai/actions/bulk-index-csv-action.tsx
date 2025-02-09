@@ -12,22 +12,38 @@ const BulkIndex = async (indexName: string, data: unknown[]) => {
   if (data.length === 0) return;
 
   try {
-    const operations = data.flatMap((doc: unknown) => [
-      { index: { _index: indexName } },
-      doc,
-    ]);
+    // Function to split the data into chunks of 1000
+    const chunkData = (data: unknown[], chunkSize: number) => {
+      const chunks = [];
+      for (let i = 0; i < data.length; i += chunkSize) {
+        chunks.push(data.slice(i, i + chunkSize));
+      }
+      return chunks;
+    };
 
-    const bulkResponse = await ESClient.bulk({
-      refresh: true,
-      body: operations,
-    });
+    // Split data into chunks of 1000
+    const chunks = chunkData(data, 1000);
 
-    if (bulkResponse.errors) {
-      console.error('Bulk indexing errors:', bulkResponse.items);
-      throw new Error('Some documents failed to index.');
+    // Iterate over chunks and index each batch
+    for (const chunk of chunks) {
+      const operations = chunk.flatMap((doc: unknown) => [
+        { index: { _index: indexName } },
+        doc,
+      ]);
+
+      const bulkResponse = await ESClient.bulk({
+        refresh: true,
+        body: operations,
+      });
+
+      if (bulkResponse.errors) {
+        console.error('Bulk indexing errors:', bulkResponse.items);
+
+        throw new Error('Some documents failed to index.');
+      }
     }
   } catch (error) {
-    console.error('Error in BulkIndex:', error);
+    console.error('Error in BulkIndex:', JSON.stringify(error));
     throw error;
   }
 };

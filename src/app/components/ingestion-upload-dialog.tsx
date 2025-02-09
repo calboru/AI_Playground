@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Link, ClipboardList, Trash2 } from 'lucide-react';
 import { useIngestion } from '@/(features)/generative-ai/context/ingestion-context';
+import Spinner from './spinner';
 
 // Define our form schema using Zod.
 const ingestionSchema = z.object({
@@ -29,7 +30,7 @@ const ingestionSchema = z.object({
 type IngestionFormValues = z.infer<typeof ingestionSchema>;
 
 const IngestionUploadDialog = () => {
-  const { openIngestionDialog, ingestionDialogOpen, bulkIndexCSV } =
+  const { openIngestionDialog, ingestionDialogOpen, bulkIndexCSV, isLoading } =
     useIngestion();
 
   // Reference for the hidden file input.
@@ -214,11 +215,8 @@ const IngestionUploadDialog = () => {
             )}
           </div>
           <DialogFooter>
-            <Button
-              className='mt-4'
-              disabled={!(files && files.length > 0)}
-              type='submit'
-            >
+            <Button className='mt-4' disabled={isLoading} type='submit'>
+              <Spinner isLoading={isLoading} />
               Start ingestion
             </Button>
           </DialogFooter>

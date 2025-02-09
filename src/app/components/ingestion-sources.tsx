@@ -22,7 +22,7 @@ const IngestionSources = () => {
   return (
     <section className='rounded-md max-w-xs flex flex-col space-y-2  bg-white w-full border'>
       <div className='border-b-2     items-center w-full'>
-        <div className='p-1 flex justify-between'>
+        <div className='p-1 flex flex-row'>
           <span className='font-bold text-xl font-mono'>Ingestions</span>
           <div>
             <Spinner isLoading={isLoading} />

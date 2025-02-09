@@ -1,10 +1,11 @@
 import React from 'react';
 import { IngestionType } from '../types/intestion-type';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+
 import { IngestionCardMenu } from './ingestion-card-menu';
 
 import { useInfiniteIngestionContent } from '../context/infinite-ingestion-content-context';
+import { Search } from 'lucide-react';
 
 const IngestionCard = ({ data }: { data: IngestionType }) => {
   const { resetCursor, selectIngestion } = useInfiniteIngestionContent();
@@ -38,9 +39,8 @@ const IngestionCard = ({ data }: { data: IngestionType }) => {
           variant='outline'
           className='w-full flex items-center justify-center'
         >
-          {/* Centered icons */}
-          <Search /> View {data.total_documents} Documents
-          {/* Added margin right to icon */}
+          <Search />
+          View {data.total_documents.toLocaleString()} Documents
         </Button>
       </div>
     </div>
