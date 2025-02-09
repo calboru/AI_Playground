@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { IngestionType } from '../types/intestion-type';
 import { InfiniteIngestionsAction } from '../actions/infinite-ingestions-action';
-import { useIngestion } from './ingestion-context';
+import { useAppContext } from '@/app/app-context';
 
 interface IInfiniteIngestionsContext {
   ingestions: IngestionType[];
@@ -26,12 +26,12 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [ingestions, setIngestions] = useState<IngestionType[]>([]);
   const [cursor, setCursor] = useState(0);
-  const { dataRefreshed } = useIngestion();
+  const { selectIngestion } = useAppContext();
 
   useEffect(() => {
     setCursor(0);
     setIngestions([]);
-  }, [dataRefreshed]);
+  }, [selectIngestion]);
 
   const fetchMore = async () => {
     try {
@@ -39,6 +39,7 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
 
       const payload = await InfiniteIngestionsAction(cursor);
       setIngestions((prev) => [...prev, ...payload.documents]);
+
       setCursor(payload.cursor);
 
       setIsLoading(false);

@@ -9,6 +9,8 @@ import React, {
 } from 'react';
 import { BulkIndexCSVAction } from '../actions/bulk-index-csv-action';
 import { useToast } from '@/hooks/use-toast';
+import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
+import { useAppContext } from '@/app/app-context';
 
 interface IIngestionContext {
   ingestionDialogOpen: boolean;
@@ -18,8 +20,6 @@ interface IIngestionContext {
     ingestionDescription: string,
     ingestionFiles: File[]
   ) => Promise<void>;
-  dataRefreshed: Date;
-  refreshData: () => void;
 }
 
 const IngestionContext = createContext<IIngestionContext | undefined>(
@@ -31,9 +31,12 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [ingestionDialogOpen, setIngestionDialogOpen] = useState(false);
-  const [dataRefreshed, setDataRefreshed] = useState<Date>(new Date());
+
+  const { fetchMore } = useInfiniteIngestionContent();
 
   const { toast } = useToast();
+
+  const { selectIngestion } = useAppContext();
 
   const handleBulkIndexCSV = async (
     ingestionDescription: string,
@@ -41,7 +44,10 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
   ) => {
     try {
       setIsLoading(true);
-      await BulkIndexCSVAction(ingestionDescription, ingestionFiles);
+      const response = await BulkIndexCSVAction(
+        ingestionDescription,
+        ingestionFiles
+      );
       setIsLoading(false);
       setIngestionDialogOpen(false);
 
@@ -50,7 +56,9 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
         description: 'Ingestion completed successfully.',
       });
 
-      setDataRefreshed(new Date());
+      selectIngestion(response.payload);
+
+      await fetchMore(true);
     } catch (error) {
       setIsLoading(false);
       console.log(error);
@@ -69,8 +77,6 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
         bulkIndexCSV: handleBulkIndexCSV,
         ingestionDialogOpen,
         openIngestionDialog: setIngestionDialogOpen,
-        dataRefreshed,
-        refreshData: () => setDataRefreshed(new Date()),
       }}
     >
       {children}

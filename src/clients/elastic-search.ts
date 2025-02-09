@@ -8,6 +8,21 @@ export const ESClient = new Client({
   },
 });
 
+// const ingestionIndexMapping = {
+//   mappings: {
+//     dynamic_templates: [
+//       {
+//         strings_as_keywords: {
+//           match_mapping_type: 'string',
+//           mapping: {
+//             type: 'keyword',
+//           },
+//         },
+//       },
+//     ],
+//   },
+// };
+
 export const InitializeIndexes = async () => {
   const indexExists = await ESClient.indices.exists({
     index: 'ingestions',

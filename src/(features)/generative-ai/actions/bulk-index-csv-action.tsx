@@ -3,6 +3,8 @@
 import { parseString } from '@fast-csv/parse';
 import { faker } from '@faker-js/faker';
 import { ESClient, InitializeIndexes } from '@/clients/elastic-search';
+import { GenericResponse } from '@/app/types/generic-response-type';
+import { IngestionType } from '../types/intestion-type';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -33,19 +35,27 @@ const BulkIndex = async (indexName: string, data: unknown[]) => {
 export const BulkIndexCSVAction = async (
   ingestionDescription: string,
   ingestionFiles: File[]
-): Promise<{ success: boolean; error: string; indexName: string }> => {
-  const payload = {
+): Promise<GenericResponse<IngestionType, undefined>> => {
+  const response: GenericResponse<IngestionType, undefined> = {
     success: false,
     error: '',
-    indexName: '',
+    payload: {
+      index_name: '',
+      id: '',
+      ingestion_description: '',
+      files: [],
+      created_at: '',
+      total_documents: 0,
+    },
+    meta: undefined,
   };
 
-  return new Promise<{ success: boolean; error: string; indexName: string }>(
+  return new Promise<GenericResponse<IngestionType, undefined>>(
     async (resolve, reject) => {
       const data: unknown[] = [];
       const cleanDescription = ingestionDescription?.trim() || 'No description';
       const indexName = 'raw-' + faker.string.alpha(10).toLowerCase();
-      payload.indexName = indexName;
+      response.payload.index_name = indexName;
 
       await InitializeIndexes();
 
@@ -57,8 +67,12 @@ export const BulkIndexCSVAction = async (
         const cleanFileName = file?.name?.trim() || 'Unknown file';
         const csvText = await file.text();
 
-        //TODO: more error handling needed
-        if (csvText?.length === 0) return;
+        if (csvText?.length === 0) {
+          response.error = 'Empty file';
+          response.success = false;
+          reject(response);
+          return;
+        }
 
         parseString(csvText, {
           headers: (headers) =>
@@ -66,21 +80,25 @@ export const BulkIndexCSVAction = async (
         })
           .on('error', (error) => {
             console.error('CSV parsing error:', error);
-            payload.error = error.message;
-            payload.success = false;
-            reject(payload);
+            response.error = error.message;
+            response.success = false;
+            reject(response);
           })
           .on('data', (row) => {
-            const rowWithFileName = { ...row, file_name: cleanFileName };
+            const rowWithFileName = {
+              ...row,
+              file_name: cleanFileName,
+              index_name: indexName,
+            };
             data.push(rowWithFileName);
           })
           .on('end', async () => {
             try {
               if (data.length === 0) {
                 console.log('No data found in CSV.');
-                payload.success = false;
-                payload.error = 'No data found in CSV.';
-                resolve(payload);
+                response.success = false;
+                response.error = 'No data found in CSV.';
+                resolve(response);
                 return;
               }
 
@@ -100,12 +118,19 @@ export const BulkIndexCSVAction = async (
               console.log(
                 `Successfully indexed ${data.length} records, index: ${indexName}`
               );
-              await delay(1000);
-              payload.success = true;
-              resolve(payload);
+
+              await ESClient.indices.refresh({ index: indexName });
+
+              response.success = true;
+              response.payload.created_at = new Date().toLocaleString();
+              response.payload.total_documents = data.length;
+              response.payload.files = onlyCSVFiles.map((file) => file.name);
+
+              await delay(3000);
+              resolve(response);
             } catch (error) {
-              payload.error = JSON.stringify(error);
-              payload.success = false;
+              response.error = JSON.stringify(error);
+              response.success = false;
 
               //delete index no need to keep junk user can ingest again.
               //delete ingestion content
