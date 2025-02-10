@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, X } from 'lucide-react';
+import { Info, List, Search, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryStringSearch } from '../context/querystring-search-context';
+import AvailableColumnsSheet from './available-columns-sheet';
 
 const searchSchema = z.object({
   searchTerm: z
@@ -39,10 +40,23 @@ const QueryStringSearchForm = () => {
       className='flex w-full p-1 m-1  items-baseline  space-x-2  '
     >
       <div className='w-full'>
-        <Input
-          placeholder='Keyword search or advanced search: ((quick AND fox) OR (brown AND fox) OR fox)'
-          {...register('searchTerm')}
-        />
+        <div className='flex flex-col space-y-1'>
+          <Input
+            placeholder='Keyword search or advanced search: ((quick AND fox) OR (brown AND fox) OR fox)'
+            {...register('searchTerm')}
+          />
+          <div className='flex w-full justify-between'>
+            <div></div>
+            <div className='flex flex-row space-x-4'>
+              <AvailableColumnsSheet />
+              <span className='text-blue-600 text-sm font-extralight flex flex-row cursor-pointer  space-x-1 border-b-2   items-center'>
+                <Info className='h-4 w-4' />
+                <span>View search tips</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
         {errors.searchTerm && (
           <p className='text-red-500 text-sm'>{errors.searchTerm.message}</p>
         )}

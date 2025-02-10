@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { Info } from 'lucide-react';
 import InfiniteIngestionContent from '@/(features)/generative-ai/components/infinite-ingestion-content';
 import { useInfiniteIngestionContent } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
 import Spinner from './spinner';
@@ -19,13 +17,6 @@ const IngestedContent = () => {
           <div className='flex flex-row'>
             <span className='font-bold text-xl font-mono'>Content</span>
             <Spinner isLoading={combinedLoading} />
-          </div>
-
-          <div>
-            <Button className='text-blue-600 text-sm' variant='link'>
-              <Info />
-              <span>View search tips</span>
-            </Button>
           </div>
         </div>
       </div>

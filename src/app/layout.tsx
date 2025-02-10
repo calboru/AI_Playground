@@ -8,6 +8,7 @@ import { InfiniteIngestionsProvider } from '@/(features)/generative-ai/context/i
 import { InfiniteIngestionContentProvider } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
 import { AppProvider } from './app-context';
 import { QueryStringSearchProvider } from '@/(features)/generative-ai/context/querystring-search-context';
+import { AvailableColumnsProvider } from '@/(features)/generative-ai/context/list-available-columns-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -39,7 +40,9 @@ export default function RootLayout({
             <InfiniteIngestionsProvider>
               <IngestionProvider>
                 <QueryStringSearchProvider>
-                  {children}
+                  <AvailableColumnsProvider>
+                    {children}
+                  </AvailableColumnsProvider>
                 </QueryStringSearchProvider>
               </IngestionProvider>
             </InfiniteIngestionsProvider>
