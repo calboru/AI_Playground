@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { InfiniteIngestionsProvider } from '@/(features)/generative-ai/context/infinite-ingestions-context';
 import { InfiniteIngestionContentProvider } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
 import { AppProvider } from './app-context';
+import { QueryStringSearchProvider } from '@/(features)/generative-ai/context/querystring-search-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -36,7 +37,11 @@ export default function RootLayout({
         <AppProvider>
           <InfiniteIngestionContentProvider>
             <InfiniteIngestionsProvider>
-              <IngestionProvider>{children}</IngestionProvider>
+              <IngestionProvider>
+                <QueryStringSearchProvider>
+                  {children}
+                </QueryStringSearchProvider>
+              </IngestionProvider>
             </InfiniteIngestionsProvider>
           </InfiniteIngestionContentProvider>
         </AppProvider>

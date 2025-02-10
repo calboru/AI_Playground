@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
-import { Info, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Info } from 'lucide-react';
 import InfiniteIngestionContent from '@/(features)/generative-ai/components/infinite-ingestion-content';
 import { useInfiniteIngestionContent } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
 import Spinner from './spinner';
+import QueryStringSearchForm from '@/(features)/generative-ai/components/query-string-search-form';
 const IngestedContent = () => {
   const { isLoading, selectedIngestion } = useInfiniteIngestionContent();
 
@@ -30,13 +30,7 @@ const IngestedContent = () => {
         {selectedIngestion?.ingestion_description}
       </p>
 
-      <div className='flex w-full p-1 m-1 items-center space-x-2'>
-        <Input placeholder='Keyword search or advanced search: ((quick AND fox) OR (brown AND fox) OR fox)' />
-        <Button type='submit'>
-          <Search />
-          <span>Search</span>
-        </Button>
-      </div>
+      <QueryStringSearchForm />
 
       <div className='w-full overflow-y-auto '>
         <InfiniteIngestionContent />
