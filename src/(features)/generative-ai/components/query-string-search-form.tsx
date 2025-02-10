@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Info, List, Search, X } from 'lucide-react';
+import { Combine, Info, Search, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +14,7 @@ const searchSchema = z.object({
 });
 
 const QueryStringSearchForm = () => {
-  const { search, resetSearch } = useQueryStringSearch();
+  const { search, resetSearch, searchIsPerformed } = useQueryStringSearch();
 
   const {
     register,
@@ -49,7 +49,7 @@ const QueryStringSearchForm = () => {
             <div></div>
             <div className='flex flex-row space-x-4'>
               <AvailableColumnsSheet />
-              <span className='text-blue-600 text-sm font-extralight flex flex-row cursor-pointer  space-x-1 border-b-2   items-center'>
+              <span className='text-blue-500 text-sm font-extralight flex flex-row cursor-pointer  space-x-1 border-b-2   items-center'>
                 <Info className='h-4 w-4' />
                 <span>View search tips</span>
               </span>
@@ -69,6 +69,12 @@ const QueryStringSearchForm = () => {
         <X />
         <span>Reset</span>
       </Button>
+      {searchIsPerformed && (
+        <Button type='button'>
+          <Combine />
+          <span>Create Embedding</span>
+        </Button>
+      )}
     </form>
   );
 };

@@ -33,7 +33,7 @@ const AvailableColumnsSheet = () => {
   return (
     <Sheet>
       <SheetTrigger>
-        <span className='text-blue-600 text-sm font-extralight flex flex-row cursor-pointer  space-x-1 border-b-2   items-center'>
+        <span className='text-blue-500 text-sm font-extralight flex flex-row cursor-pointer  space-x-1 border-b-2   items-center'>
           <List className='h-4 w-4' />
           <span>View columns</span>
         </span>
@@ -47,7 +47,7 @@ const AvailableColumnsSheet = () => {
             List of available columns in the dataset
           </SheetDescription>
         </SheetHeader>
-        <div className='w-full'>
+        <div className='w-full overflow-y-auto'>
           <Table>
             <TableHeader>
               <TableRow>
