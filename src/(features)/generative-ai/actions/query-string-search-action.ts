@@ -70,16 +70,16 @@ export const QueryStringSearchAction = async (
       return ingestedSource;
     });
 
-    if (response.payload.length > 1) {
+    if ((res.hits?.total as { value: number }).value ?? 0 > 1) {
       response.success = response.payload.length > 0;
       response.meta.totalDocuments =
         (res.hits?.total as { value: number }).value ?? 0;
       response.meta.took = res.took;
-      response.meta.cursor = cursor + 100;
+      response.meta.cursor = cursor + 10;
     } else {
       response.error = 'No documents found';
     }
-    console.log(response);
+    response.success = true;
     return response;
   } catch (error) {
     response.error = JSON.stringify(error);

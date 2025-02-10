@@ -1,16 +1,20 @@
 'use client';
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 import { QueryStringSearchAction } from '../actions/query-string-search-action';
 import { useToast } from '@/hooks/use-toast';
 
 interface IQueryStringSearchContext {
   searchTerm: string;
-  search: (searchTerm: string) => void;
+  search: (searchTerm: string, newSearch: boolean) => void;
+  fetchMore: () => void;
   content: unknown[];
   cursor: number;
   searchIsPerformed: boolean;
   resetSearch: () => void;
+  isSearching: boolean;
+  totalDocuments: number;
+  took: number;
 }
 
 const QueryStringSearchContext = createContext<
@@ -38,40 +42,78 @@ export const QueryStringSearchProvider: React.FC<
   const { selectedIngestion } = useInfiniteIngestionContent();
   const [cursor, setCursor] = useState<number>(0);
   const [content, setContent] = useState<unknown[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [totalDocuments, setTotalDocuments] = useState<number>(0);
+  const [took, setTook] = useState<number>(0);
+
   const { toast } = useToast();
 
-  const handleSearch = async (searchTerm: string) => {
+  const handleSearch = (searchTerm: string, newSearch: boolean = false) => {
+    if (newSearch) {
+      setContent([]);
+      setCursor(0);
+    }
     setSearchTerm(searchTerm);
+  };
 
-    try {
-      const response = await QueryStringSearchAction(
-        selectedIngestion?.index_name ?? '',
-        searchTerm,
-        0
-      );
-      setContent((prev) => [...prev, ...response.payload]);
-      setCursor(response.meta.cursor);
+  const handleFetchMore = useCallback(
+    async () => {
+      setIsSearching(true);
 
-      if (!response.success) {
+      try {
+        const response = await QueryStringSearchAction(
+          selectedIngestion?.index_name ?? '',
+          searchTerm,
+          cursor
+        );
+
+        if (response.meta.totalDocuments === 0) {
+          toast({
+            title: ':(',
+            description: 'Search did not yield any results',
+          });
+          setContent([]);
+          setCursor(0);
+          setTotalDocuments(0);
+        }
+
+        if (response.meta.totalDocuments === content.length) {
+          setIsSearching(false);
+          return;
+        }
+
+        setContent((prev) => [...prev, ...response.payload]);
+        setCursor(response.meta.cursor);
+        setTotalDocuments(response.meta.totalDocuments);
+        setTook(response.meta.took);
+
+        if (!response.success) {
+          toast({
+            variant: 'destructive',
+            title: 'Unable to perform search',
+            description: response.error,
+          });
+        }
+        setIsSearching(false);
+      } catch (error) {
         toast({
           variant: 'destructive',
           title: 'Unable to perform search',
-          description: response.error,
+          description: JSON.stringify(error),
         });
+        setIsSearching(false);
       }
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Unable to perform search',
-        description: JSON.stringify(error),
-      });
-      console.log(error);
-    }
-  };
+    },
+    [searchTerm, selectedIngestion?.index_name, cursor, toast] // Dependencies
+  );
 
   return (
     <QueryStringSearchContext.Provider
       value={{
+        totalDocuments,
+        took,
+        fetchMore: handleFetchMore,
+        isSearching,
         searchTerm,
         search: handleSearch,
         content,

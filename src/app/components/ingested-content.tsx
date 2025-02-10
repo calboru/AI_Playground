@@ -4,8 +4,13 @@ import InfiniteIngestionContent from '@/(features)/generative-ai/components/infi
 import { useInfiniteIngestionContent } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
 import Spinner from './spinner';
 import QueryStringSearchForm from '@/(features)/generative-ai/components/query-string-search-form';
+import { useQueryStringSearch } from '@/(features)/generative-ai/context/querystring-search-context';
+import InfiniteSearchResults from '@/(features)/generative-ai/components/infinite-search-results';
 const IngestedContent = () => {
   const { isLoading, selectedIngestion } = useInfiniteIngestionContent();
+  const { searchIsPerformed, isSearching, totalDocuments, took } =
+    useQueryStringSearch();
+  const combinedLoading = isLoading || isSearching;
 
   return (
     <section className='rounded-md flex flex-col space-y-2  bg-white w-full border'>
@@ -13,7 +18,7 @@ const IngestedContent = () => {
         <div className='p-1 flex justify-between'>
           <div className='flex flex-row'>
             <span className='font-bold text-xl font-mono'>Content</span>
-            <Spinner isLoading={isLoading} />
+            <Spinner isLoading={combinedLoading} />
           </div>
 
           <div>
@@ -32,8 +37,15 @@ const IngestedContent = () => {
 
       <QueryStringSearchForm />
 
+      {searchIsPerformed && (
+        <div className='flex w-full p-1 ml-2 mr-2 font-bold text-sm text-red-500 '>
+          Found {totalDocuments.toLocaleString()} documents in {took}ms
+        </div>
+      )}
+
       <div className='w-full overflow-y-auto '>
-        <InfiniteIngestionContent />
+        {!searchIsPerformed && <InfiniteIngestionContent />}
+        {searchIsPerformed && <InfiniteSearchResults />}
       </div>
     </section>
   );

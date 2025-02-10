@@ -13,25 +13,30 @@ const searchSchema = z.object({
 });
 
 const QueryStringSearchForm = () => {
-  const { search } = useQueryStringSearch();
+  const { search, resetSearch } = useQueryStringSearch();
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
   });
 
   const onSubmit = async (formData: z.infer<typeof searchSchema>) => {
-    console.log('Search Query:', formData.searchTerm);
-    await search(formData.searchTerm);
+    search(formData.searchTerm, true);
+  };
+
+  const onReset = async () => {
+    reset();
+    resetSearch();
   };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className='flex w-full p-1 m-1 items-center space-x-2'
+      className='flex w-full p-1 m-1  items-baseline  space-x-2  '
     >
       <div className='w-full'>
         <Input
@@ -46,7 +51,7 @@ const QueryStringSearchForm = () => {
         <Search />
         <span>Search</span>
       </Button>
-      <Button type='submit'>
+      <Button type='reset' onClick={onReset}>
         <X />
         <span>Reset</span>
       </Button>
