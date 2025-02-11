@@ -1,11 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Combine, Info, Search, X } from 'lucide-react';
+import { Info, Search, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryStringSearch } from '../context/querystring-search-context';
 import AvailableColumnsSheet from './available-columns-sheet';
+import CurationEmbeddingDialog from './curation-embedding-dialog';
 
 const searchSchema = z.object({
   searchTerm: z
@@ -69,12 +70,7 @@ const QueryStringSearchForm = () => {
         <X />
         <span>Reset</span>
       </Button>
-      {searchIsPerformed && (
-        <Button type='button'>
-          <Combine />
-          <span>Create Embedding</span>
-        </Button>
-      )}
+      {searchIsPerformed && <CurationEmbeddingDialog />}
     </form>
   );
 };

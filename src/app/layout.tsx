@@ -9,6 +9,7 @@ import { InfiniteIngestionContentProvider } from '@/(features)/generative-ai/con
 import { AppProvider } from './app-context';
 import { QueryStringSearchProvider } from '@/(features)/generative-ai/context/querystring-search-context';
 import { AvailableColumnsProvider } from '@/(features)/generative-ai/context/list-available-columns-context';
+import { LLMProvider } from '@/context/llm-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -36,17 +37,19 @@ export default function RootLayout({
       >
         <MainLayoutHeader />
         <AppProvider>
-          <InfiniteIngestionContentProvider>
-            <InfiniteIngestionsProvider>
-              <IngestionProvider>
-                <QueryStringSearchProvider>
-                  <AvailableColumnsProvider>
-                    {children}
-                  </AvailableColumnsProvider>
-                </QueryStringSearchProvider>
-              </IngestionProvider>
-            </InfiniteIngestionsProvider>
-          </InfiniteIngestionContentProvider>
+          <LLMProvider>
+            <InfiniteIngestionContentProvider>
+              <InfiniteIngestionsProvider>
+                <IngestionProvider>
+                  <QueryStringSearchProvider>
+                    <AvailableColumnsProvider>
+                      {children}
+                    </AvailableColumnsProvider>
+                  </QueryStringSearchProvider>
+                </IngestionProvider>
+              </InfiniteIngestionsProvider>
+            </InfiniteIngestionContentProvider>
+          </LLMProvider>
         </AppProvider>
         <Toaster />
       </body>
