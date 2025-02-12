@@ -9,6 +9,7 @@ interface ILLMContext {
   getListOfModels: () => void;
   listOfModels: LLMType[];
   isLoading: boolean;
+  selectedModel: string;
 }
 
 const LLMContext = createContext<ILLMContext | undefined>(undefined);
@@ -33,7 +34,8 @@ export const LLMProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const context: ILLMContext = {
-    defaultModel,
+    defaultModel: defaultModel,
+    selectedModel: defaultModel.split('_')[0],
     listOfModels,
     isLoading,
     setDefaultModel: setDefaultModel,

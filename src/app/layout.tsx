@@ -10,6 +10,7 @@ import { AppProvider } from './app-context';
 import { QueryStringSearchProvider } from '@/(features)/generative-ai/context/querystring-search-context';
 import { AvailableColumnsProvider } from '@/(features)/generative-ai/context/list-available-columns-context';
 import { LLMProvider } from '@/context/llm-context';
+import { CurateAndEmbedProvider } from '@/(features)/generative-ai/context/curation-and-embedding-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -43,7 +44,9 @@ export default function RootLayout({
                 <IngestionProvider>
                   <QueryStringSearchProvider>
                     <AvailableColumnsProvider>
-                      {children}
+                      <CurateAndEmbedProvider>
+                        {children}
+                      </CurateAndEmbedProvider>
                     </AvailableColumnsProvider>
                   </QueryStringSearchProvider>
                 </IngestionProvider>

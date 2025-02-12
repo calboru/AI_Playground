@@ -25,7 +25,7 @@ const CurationEmbeddingDialog = () => {
         <DialogHeader>
           <DialogTitle>Curation & Embedding</DialogTitle>
           <DialogDescription>
-            Curate and embed data with selected columns
+            Curate and embed data with selected columns of filtered results
           </DialogDescription>
         </DialogHeader>
         <CurationAndEmbeddingForm />

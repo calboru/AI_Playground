@@ -33,7 +33,7 @@ const LLMModelListDropdown = () => {
       <SelectContent>
         {!isLoading &&
           listOfModels.map((model) => {
-            const modelValue = `${model.modelName}-${model.version}`;
+            const modelValue = `${model.modelName}_${model.version}`;
             return (
               <SelectItem key={modelValue} value={modelValue}>
                 {modelValue}

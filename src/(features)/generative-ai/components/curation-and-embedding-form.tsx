@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAvailableColumns } from '../context/list-available-columns-context';
 import {
   Form,
@@ -6,7 +6,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,20 +18,39 @@ import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import LLMModelListDropdown from '@/components/llm-dropdown';
+import { useQueryStringSearch } from '../context/querystring-search-context';
+import { jsonToMarkdown } from '../actions/convert-json-to-markdown';
+import { useCurateAndEmbed } from '../context/curation-and-embedding-context';
+import { CircleArrowLeft, CircleArrowRight } from 'lucide-react';
 
 const formSchema = z.object({
   selected_columns: z
     .array(z.string())
     .min(1, 'You have to select at least one item.'),
+  prompt: z.string(),
 });
 
 const CurationAndEmbeddingForm = () => {
+  const [contentIndex, setContentIndex] = useState(0);
+  const [markdownText, setMarkdownText] = useState('');
   const { availableColumns, isLoading, fetchAvailableColumns } =
     useAvailableColumns();
+
+  const {
+    ask,
+    response,
+    isLoading: isWorkingOnIt,
+    userAsked,
+    reset,
+  } = useCurateAndEmbed();
+
+  const { content } = useQueryStringSearch();
 
   useEffect(() => {
     (async () => {
       await fetchAvailableColumns();
+      setMarkdownText('');
+      reset();
     })();
   }, []);
 
@@ -45,6 +63,55 @@ const CurationAndEmbeddingForm = () => {
     console.log(values);
   }
 
+  const onColumnSelect = () => {
+    const selectedCols = form.getValues('selected_columns');
+    const converted = jsonToMarkdown(content[contentIndex], selectedCols);
+    setMarkdownText(converted);
+  };
+
+  const changeRecord = (previous: boolean) => {
+    reset();
+    if (previous) {
+      setContentIndex((prev) => (prev === 0 ? 0 : prev - 1));
+    } else {
+      setContentIndex((prev) =>
+        prev === content.length - 1 ? prev : prev + 1
+      );
+    }
+
+    const selectedCols = form.getValues('selected_columns');
+    const converted = jsonToMarkdown(content[contentIndex], selectedCols);
+    setMarkdownText(converted);
+  };
+
+  const handlePreview = async (prompt: string) => {
+    if (!prompt?.trim()) {
+      form.clearErrors('prompt'); // Clear first to ensure UI updates
+      setTimeout(
+        () =>
+          form.setError('prompt', { message: 'Prompt is required to preview' }),
+        10
+      );
+      return;
+    }
+    const selectedCols = form.getValues('selected_columns');
+    if (selectedCols?.length === 0) {
+      form.clearErrors('selected_columns'); // Clear first to ensure UI updates
+      setTimeout(
+        () =>
+          form.setError('selected_columns', {
+            message: 'At least one column must be selected',
+          }),
+        10
+      );
+      return;
+    }
+    form.clearErrors('selected_columns');
+    form.clearErrors('prompt');
+    const combinedPrompt = `Each data point title in the markdown text: "${markdownText}" is in bold. Modify the data points as per the instruction: "${prompt.trim()}". Maintain the format, ensuring data point titles remain in bold. If the instruction requests new data points, append them at the end in the same format. Do not add unspecified data points. Separate each data point with a carriage return. Return only the modified markdown text without any elaboration.`;
+    await ask(combinedPrompt);
+  };
+
   if (isLoading) {
     return <Spinner isLoading={isLoading} />;
   }
@@ -53,14 +120,23 @@ const CurationAndEmbeddingForm = () => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className='flex flex-col space-y-1 bg-slate-100 rounded-md text-sm w-full'
+        className='flex flex-col space-y-1 bg-slate-100 rounded-md text-sm  w-full'
       >
+        {/* Display Error Message at the Top */}
+        {(form.formState.errors?.prompt ||
+          form.formState.errors?.selected_columns) && (
+          <div className='p-2 m-1 bg-red-100 text-red-700 border border-red-300 rounded-md'>
+            {form.formState.errors?.selected_columns?.message}
+            {form.formState?.errors?.prompt?.message}
+          </div>
+        )}
+
         {/* Grid Layout */}
-        <div className='flex flex-row space-x-2 p-2  text-sm w-full'>
+        <div className='flex flex-row space-x-2 p-2 text-sm w-full'>
           {/* Available Columns */}
           <div className='p-2 border rounded shadow w-1/2 bg-white'>
-            <div className='border-b-2 font-bold'>Available Columns</div>
-            <div className='overflow-y-auto max-h-80  p-2'>
+            <div className='border-b-2 font-bold p-1'>Available Columns</div>
+            <div className='overflow-y-auto max-h-80 p-2'>
               {availableColumns.map((item) => (
                 <FormField
                   key={item.column_name}
@@ -70,6 +146,7 @@ const CurationAndEmbeddingForm = () => {
                     <FormItem className='flex items-center space-x-2 w-full p-1'>
                       <FormControl>
                         <Checkbox
+                          disabled={isWorkingOnIt || isLoading}
                           checked={field.value?.includes(item.column_name)}
                           onCheckedChange={(checked) => {
                             field.onChange(
@@ -80,6 +157,7 @@ const CurationAndEmbeddingForm = () => {
                                       value !== item.column_name
                                   )
                             );
+                            onColumnSelect();
                           }}
                         />
                       </FormControl>
@@ -93,32 +171,66 @@ const CurationAndEmbeddingForm = () => {
 
           {/* Data Display */}
           <div className='flex flex-col space-y-3 p-2 border rounded shadow bg-white w-1/2'>
-            <span className='border-b-2 font-bold'>Data</span>
+            <div className='flex flex-row justify-between border-b-2 p-1 '>
+              <span className='font-bold'>Data</span>
+              <div className='flex flex-row space-x-2 items-center '>
+                <CircleArrowLeft
+                  onClick={() => changeRecord(true)}
+                  className='w-5 h-5'
+                />
+                <CircleArrowRight
+                  onClick={() => changeRecord(false)}
+                  className='w-5 h-5'
+                />
+              </div>
+            </div>
             <Markdown
-              className='w-full overflow-auto'
+              className='w-full max-w-[300px]  overflow-y-auto overflow-x-auto max-h-80'
               remarkPlugins={[remarkGfm]}
             >
-              {
-                '**Bold Text**\n\n- List item 1\n- List item 2\n\n[Link](https://example.com)'
-              }
+              {!userAsked ? markdownText : response}
             </Markdown>
           </div>
         </div>
-        <div className='flex flex-col space-y-3 m-2 p-2 border rounded shadow bg-white  '>
-          <div className='border-b-2 font-bold '>
+
+        {/* Curation Prompt */}
+        <div className='flex flex-col space-y-3 m-2 p-2 border rounded shadow bg-white'>
+          <div className='border-b-2 font-bold'>
             <div>Curation prompt</div>
           </div>
-          <Textarea />
+          <FormField
+            control={form.control}
+            name='prompt'
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder='Enter your prompt for curation'
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
         </div>
+
         {/* Buttons */}
-        <div className='flex justify-end p-2 space-x-2 '>
-          <div className='flex flex-row space-x-2 items-center  '>
+        <div className='flex justify-end items-center p-2 space-x-2'>
+          <div className='flex flex-row space-x-2 items-center rounded-md shadow border bg-white p-1'>
             <span className='font-bold'>Select LLM:</span>
             <LLMModelListDropdown />
           </div>
-          <FormMessage />
-          <Button type='submit'>Dry-run</Button>
-          <Button type='submit'>Run</Button>
+          <Button
+            disabled={isWorkingOnIt || isLoading}
+            onClick={() => handlePreview(form.getValues('prompt'))}
+            type='button'
+          >
+            {<Spinner isLoading={isWorkingOnIt} />}
+            Preview curation
+          </Button>
+          <Button disabled={isWorkingOnIt || isLoading} type='submit'>
+            Run
+          </Button>
         </div>
       </form>
     </Form>
