@@ -11,12 +11,18 @@ import {
 
 import { Combine } from 'lucide-react';
 import CurationAndEmbeddingForm from './curation-and-embedding-form';
+import { useCurateAndEmbed } from '../context/curation-and-embedding-context';
 
 const CurationEmbeddingDialog = () => {
+  const { curationDialogOpen, openCurationDialog } = useCurateAndEmbed();
+
   return (
-    <Dialog>
+    <Dialog open={curationDialogOpen} onOpenChange={openCurationDialog}>
       <DialogTrigger asChild>
-        <Button type='button'>
+        <Button
+          onClick={() => openCurationDialog(curationDialogOpen)}
+          type='button'
+        >
           <Combine />
           <span>Create Embedding</span>
         </Button>

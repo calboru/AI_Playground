@@ -4,6 +4,7 @@ import Spinner from './spinner';
 import QueryStringSearchForm from '@/(features)/generative-ai/components/query-string-search-form';
 import { useQueryStringSearch } from '@/(features)/generative-ai/context/querystring-search-context';
 import InfiniteSearchResults from '@/(features)/generative-ai/components/infinite-search-results';
+import EmbeddingProgressDialog from '@/(features)/generative-ai/components/embedding-progress-dialog';
 const IngestedContent = () => {
   const { isLoading, selectedIngestion } = useInfiniteIngestionContent();
   const { searchIsPerformed, isSearching, totalDocuments, took } =
@@ -38,6 +39,7 @@ const IngestedContent = () => {
         {!searchIsPerformed && <InfiniteIngestionContent />}
         {searchIsPerformed && <InfiniteSearchResults />}
       </div>
+      <EmbeddingProgressDialog />
     </section>
   );
 };

@@ -27,7 +27,7 @@ const formSchema = z.object({
   selected_columns: z
     .array(z.string())
     .min(1, 'You have to select at least one item.'),
-  prompt: z.string(),
+  prompt: z.string().optional(),
 });
 
 const CurationAndEmbeddingForm = () => {
@@ -42,6 +42,7 @@ const CurationAndEmbeddingForm = () => {
     isLoading: isWorkingOnIt,
     userAsked,
     reset,
+    embedAllDocuments,
   } = useCurateAndEmbed();
 
   const { content } = useQueryStringSearch();
@@ -59,8 +60,11 @@ const CurationAndEmbeddingForm = () => {
     defaultValues: { selected_columns: [] },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  async function onSubmit() {
+    const values = form.getValues();
+    const { selected_columns } = values;
+
+    await embedAllDocuments(selected_columns);
   }
 
   const onColumnSelect = () => {
@@ -118,10 +122,7 @@ const CurationAndEmbeddingForm = () => {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className='flex flex-col space-y-1 bg-slate-100 rounded-md text-sm  w-full'
-      >
+      <form className='flex flex-col space-y-1 bg-slate-100 rounded-md text-sm  w-full'>
         {/* Display Error Message at the Top */}
         {(form.formState.errors?.prompt ||
           form.formState.errors?.selected_columns) && (
@@ -222,13 +223,17 @@ const CurationAndEmbeddingForm = () => {
           </div>
           <Button
             disabled={isWorkingOnIt || isLoading}
-            onClick={() => handlePreview(form.getValues('prompt'))}
+            onClick={() => handlePreview(form.getValues('prompt') ?? '')}
             type='button'
           >
             {<Spinner isLoading={isWorkingOnIt} />}
             Preview curation
           </Button>
-          <Button disabled={isWorkingOnIt || isLoading} type='submit'>
+          <Button
+            onClick={onSubmit}
+            type='button'
+            disabled={isWorkingOnIt || isLoading}
+          >
             Run
           </Button>
         </div>
