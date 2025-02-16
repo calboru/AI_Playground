@@ -14,7 +14,7 @@ import { EmbeddingEventType } from '@/types/embedding-event-type';
 import { EmbedAllDocumentsAction } from '../actions/embed-document';
 import { useQueryStringSearch } from './querystring-search-context';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
-
+import { useToast } from '@/hooks/use-toast';
 interface ICurateAndEmbedContext {
   prompt: string;
   response: string;
@@ -38,6 +38,7 @@ const CurateAndEmbedContext = createContext<ICurateAndEmbedContext | undefined>(
 export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const { toast } = useToast();
   const [curationDialogOpen, setCurationDialogOpen] = useState(false);
   const [embeddingProgressDialogOpen, setEmbeddingProgressDialogOpen] =
     useState(false);
@@ -108,18 +109,26 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
           decoder.decode(value)
         ) as EmbeddingEventType;
 
-        console.log('DECODE', decodedValue);
-
         setEmbeddingEvent(() => decodedValue);
 
-        if (decodedValue.finished || decodedValue.failed) {
+        if (decodedValue.finished) {
           setIsLoading(false);
+          setEmbeddingProgressDialogOpen(false);
+          toast({
+            title: 'Embedding',
+            description: 'Embedding completed successfully.',
+          });
         }
       }
 
       setIsLoading(false);
     } catch (error) {
       console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Unable to ingest files',
+        description: JSON.stringify(error),
+      });
       setIsLoading(false);
     }
   };

@@ -139,6 +139,8 @@ const PublishEmbeddingEvent = (
 ) => {
   controller.enqueue(new TextEncoder().encode(JSON.stringify(event)));
 };
+
+//not working replace with class
 const cloneEmbeddingEvent = (
   originalEvent: EmbeddingEventType
 ): EmbeddingEventType => {

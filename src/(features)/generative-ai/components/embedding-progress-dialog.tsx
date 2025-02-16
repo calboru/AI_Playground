@@ -35,7 +35,15 @@ const EmbeddingProgressDialog = () => {
             </div>
           </DialogTitle>
           <DialogDescription>
-            Curate and embed data with selected columns of filtered results
+            {(embeddingEvent?.currentDocumentIndex ?? 0) < 1 && (
+              <span>Embedding is in progress.</span>
+            )}
+            {(embeddingEvent?.currentDocumentIndex ?? 0) > 0 && (
+              <span>
+                {embeddingEvent?.currentDocumentIndex} of{' '}
+                {embeddingEvent?.totalDocument} documents embedded.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className='flex flex-col items-center space-y-4  w-full'>
