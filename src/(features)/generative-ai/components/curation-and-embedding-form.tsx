@@ -62,9 +62,9 @@ const CurationAndEmbeddingForm = () => {
 
   async function onSubmit() {
     const values = form.getValues();
-    const { selected_columns } = values;
+    const { selected_columns, prompt } = values;
 
-    await embedAllDocuments(selected_columns);
+    await embedAllDocuments(selected_columns, prompt ?? '');
   }
 
   const onColumnSelect = () => {
@@ -112,8 +112,7 @@ const CurationAndEmbeddingForm = () => {
     }
     form.clearErrors('selected_columns');
     form.clearErrors('prompt');
-    const combinedPrompt = `Each data point title in the markdown text: "${markdownText}" is in bold. Modify the data points as per the instruction: "${prompt.trim()}". Maintain the format, ensuring data point titles remain in bold. If the instruction requests new data points, append them at the end in the same format. Do not add unspecified data points. Separate each data point with a carriage return. Return only the modified markdown text without any elaboration.`;
-    await ask(combinedPrompt);
+    await ask(markdownText, prompt);
   };
 
   if (isLoading) {

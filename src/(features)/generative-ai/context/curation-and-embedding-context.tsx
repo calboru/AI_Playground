@@ -15,15 +15,19 @@ import { EmbedAllDocumentsAction } from '../actions/embed-document';
 import { useQueryStringSearch } from './querystring-search-context';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 import { useToast } from '@/hooks/use-toast';
+import { EmbeddingPrompt } from '@/lib/prompts';
 interface ICurateAndEmbedContext {
   prompt: string;
   response: string;
-  ask: (prompt: string) => Promise<void>;
+  ask: (markdownText: string, prompt: string) => Promise<void>;
   abort: () => void;
   isLoading: boolean;
   userAsked: boolean;
   reset: () => void;
-  embedAllDocuments: (selectedColumns: string[]) => Promise<void>;
+  embedAllDocuments: (
+    selectedColumns: string[],
+    userPrompt: string
+  ) => Promise<void>;
   embeddingEvent: EmbeddingEventType | null;
   curationDialogOpen: boolean;
   openCurationDialog: Dispatch<SetStateAction<boolean>>;
@@ -56,13 +60,16 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
   const { searchTerm } = useQueryStringSearch();
   const { selectedIngestion } = useInfiniteIngestionContent();
 
-  const handleAsk = async (prompt: string) => {
+  const handleAsk = async (markdownText: string, prompt: string) => {
     try {
       setIsLoading(true);
       setPrompt(prompt.trim());
       setResponse('');
 
-      const res = await AskLLMAction(selectedModel, prompt);
+      const res = await AskLLMAction(
+        selectedModel,
+        EmbeddingPrompt(markdownText, prompt)
+      );
       setIterator(res); // Store the iterator for aborting later
 
       for await (const chunk of res) {
@@ -84,14 +91,18 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const handleEmbedAllDocuments = async (selectedColumns: string[]) => {
+  const handleEmbedAllDocuments = async (
+    selectedColumns: string[],
+    userPrompt: string
+  ) => {
     try {
       setIsLoading(true);
       setCurationDialogOpen(false);
       setEmbeddingProgressDialogOpen(true);
+
       const streamingResponse = await EmbedAllDocumentsAction(
         searchTerm,
-        prompt,
+        userPrompt,
         selectedModel,
         selectedIngestion?.index_name ?? '',
         selectedIngestion?.ingestion_description ?? '',

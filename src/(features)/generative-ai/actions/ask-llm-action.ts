@@ -1,15 +1,77 @@
 'use server';
 import { LLMClient } from '@/clients/llm-client';
+import {
+  SearchInFoodAndDrugAdministrationDatabase,
+  SearchInFoodAndDrugAdministrationDatabaseAgent,
+} from './ollama-agents/fda-agent';
+import {
+  SearchInEuropeanMedicinesAgencyDatabase,
+  SearchInEuropeanMedicinesAgencyDatabaseAgent,
+} from './ollama-agents/ema-agent';
+
+const availableAgents = {
+  SearchInFoodAndDrugAdministrationDatabase:
+    SearchInFoodAndDrugAdministrationDatabase,
+  SearchInEuropeanMedicinesAgencyDatabase:
+    SearchInEuropeanMedicinesAgencyDatabase,
+};
 
 export const AskLLMAction = async (defaultModel: string, prompt: string) => {
   try {
-    return await LLMClient.chat({
+    const combinedMessages = [{ role: 'user', content: prompt }];
+
+    const initialCall = await LLMClient.chat({
       model: defaultModel,
-      messages: [{ role: 'user', content: prompt }],
+      messages: combinedMessages,
+      stream: false,
+      tools: [
+        SearchInFoodAndDrugAdministrationDatabaseAgent,
+        SearchInEuropeanMedicinesAgencyDatabaseAgent,
+      ],
+    });
+
+    let output = '';
+
+    if (initialCall.message.tool_calls) {
+      for (const tool of initialCall.message.tool_calls) {
+        const functionToCall = (
+          availableAgents as unknown as {
+            [key: string]: (args: unknown) => Promise<string>;
+          }
+        )[tool.function.name];
+
+        if (functionToCall) {
+          console.log('Calling function:', tool.function.name);
+          console.log('Arguments:', tool.function.arguments);
+
+          // const parsedArgs =
+          //   typeof tool.function.arguments === 'string'
+          //     ? JSON.parse(tool.function.arguments)
+          //     : tool.function.arguments;
+
+          output = await functionToCall(tool.function.arguments);
+          console.log('Function output:', output);
+
+          combinedMessages.push(initialCall.message);
+          combinedMessages.push({
+            role: 'tool',
+            content: output.toString(),
+          });
+        } else {
+          console.log('Function', tool.function.name, 'not found');
+        }
+      }
+    } else {
+      console.log('No function calls found in the response');
+    }
+    console.log('combinedMessages:', combinedMessages);
+    return await LLMClient.chat({
+      model: 'command-r7b',
+      messages: combinedMessages,
       stream: true,
     });
   } catch (error) {
-    console.log(error);
+    console.error('AskLLMAction error:', error);
     throw error;
   }
 };

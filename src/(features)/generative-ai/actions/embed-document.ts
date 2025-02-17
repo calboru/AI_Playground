@@ -11,6 +11,7 @@ import { LLMClient } from '@/clients/llm-client';
 import { jsonToMarkdown } from './convert-json-to-markdown';
 import { EmbeddingEventType } from '@/types/embedding-event-type';
 import { faker } from '@faker-js/faker';
+import { EmbeddingPrompt } from '@/lib/prompts';
 
 const updateRAGIndex = async (
   indexName: string,
@@ -147,9 +148,30 @@ const cloneEmbeddingEvent = (
   return { ...originalEvent }; // Shallow copy or deep copy depending on your needs
 };
 
+const curateWithUserPrompt = async (
+  llmModel: string,
+  markdownText: string,
+  userPrompt: string
+) => {
+  if (userPrompt?.trim() === '') {
+    return markdownText;
+  }
+  const answer = await LLMClient.chat({
+    model: llmModel,
+    messages: [
+      {
+        role: 'user',
+        content: EmbeddingPrompt(markdownText, userPrompt),
+      },
+    ],
+    stream: false,
+  });
+  return answer.message.content;
+};
+
 export const EmbedAllDocumentsAction = async (
   searchTerm: string,
-  prompt: string,
+  userPompt: string,
   llmModel: string,
   indexName: string,
   indexDescription: string,
@@ -225,23 +247,21 @@ export const EmbedAllDocumentsAction = async (
             const { _source } = hit;
             const markdownText = jsonToMarkdown(_source, selectedColumns);
 
-            const combinedPrompt = `Each data point title in the markdown text: "${markdownText}" is in bold. Modify the data points as per the instruction: "${prompt.trim()}". Maintain the format, ensuring data point titles remain in bold. If the instruction requests new data points, append them at the end in the same format. Do not add unspecified data points. Separate each data point with two spaces and a carriage return. Return only the modified markdown text without any elaboration.`;
-
-            const answer = await LLMClient.chat({
-              model: llmModel,
-              messages: [{ role: 'user', content: combinedPrompt }],
-              stream: false,
-            });
+            console.log(EmbeddingPrompt(markdownText, userPompt));
+            const curatedOrOriginalContent = await curateWithUserPrompt(
+              llmModel,
+              markdownText,
+              userPompt
+            );
 
             const embeddingEventForDocument =
               cloneEmbeddingEvent(embeddingEvent);
             embeddingEventForDocument.originalContent = markdownText;
-            embeddingEventForDocument.curatedContent = answer.message.content;
-            console.log(embeddingEventForDocument);
+            embeddingEventForDocument.curatedContent = curatedOrOriginalContent;
 
             responses.push(
               new Document<Record<string, unknown>>({
-                pageContent: answer.message.content,
+                pageContent: curatedOrOriginalContent,
                 metadata: {
                   transaction_id: transactionId,
                   ...(hit._source as Record<string, unknown>),
