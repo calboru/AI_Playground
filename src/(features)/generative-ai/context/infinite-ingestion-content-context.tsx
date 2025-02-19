@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 
 import { InfiniteIngestionContentAction } from '../actions/infinite-ingestion-content-action';
-import { IngestionType } from '../types/intestion-type';
+import { IngestionType } from '../types/ingestion-type';
 
 interface IInfiniteIngestionContentContext {
   content: unknown[];

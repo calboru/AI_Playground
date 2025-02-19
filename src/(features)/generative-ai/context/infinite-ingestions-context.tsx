@@ -6,7 +6,7 @@ import React, {
   ReactNode,
   useEffect,
 } from 'react';
-import { IngestionType } from '../types/intestion-type';
+import { IngestionType } from '../types/ingestion-type';
 import { InfiniteIngestionsAction } from '../actions/infinite-ingestions-action';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 

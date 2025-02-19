@@ -1,43 +1,40 @@
 'use server';
-import { ESClient, InitializeIndexes } from '@/clients/elastic-search';
-import { IngestionType } from '../types/ingestion-type';
+import { ESClient } from '@/clients/elastic-search';
 import { InfinitePayload } from '@/types/infinite-payload';
+import { RAGDatabaseType } from '../types/rag-database-type';
 
-export const InfiniteIngestionContentAction = async (
-  page: number,
-  indexName: string
-) => {
+export const InfiniteRAGDatabasesAction = async (page: number) => {
   try {
-    const pageSize = 100;
+    const pageSize = 10;
 
-    console.log('this is the index name', indexName);
-    const payload: InfinitePayload<unknown> = {
+    const payload: InfinitePayload<RAGDatabaseType> = {
       documents: [],
       cursor: 0,
-      hasMore: true,
+      hasMore: false,
       totalDocuments: 0,
     };
 
-    await InitializeIndexes();
-    await ESClient.indices.refresh({ index: indexName });
-
     const searchParams = {
-      index: indexName,
+      index: 'rag-index',
       size: pageSize,
       from: page,
+      sort: [
+        { created_at: { order: 'desc' } }, // Sort by created_at descending
+      ],
       query: {
         match_all: {},
       },
     };
 
     const res = await ESClient.search(searchParams);
-    const totalDocuments = (res.hits?.total as { value: number }).value ?? 0;
 
     const docs = res.hits.hits.map((hit) => {
-      const source = hit._source as IngestionType;
+      const source = hit._source as RAGDatabaseType;
       source.id = hit._id as string;
       return source;
     });
+
+    const totalDocuments = (res.hits?.total as { value: number }).value ?? 0;
 
     payload.totalDocuments = totalDocuments;
     payload.documents = docs ?? [];
@@ -48,7 +45,6 @@ export const InfiniteIngestionContentAction = async (
 
     return payload;
   } catch (error) {
-    console.log(error);
     throw error;
   }
 };

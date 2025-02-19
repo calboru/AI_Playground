@@ -11,6 +11,8 @@ import { QueryStringSearchProvider } from '@/(features)/generative-ai/context/qu
 import { AvailableColumnsProvider } from '@/(features)/generative-ai/context/list-available-columns-context';
 import { LLMProvider } from '@/context/llm-context';
 import { CurateAndEmbedProvider } from '@/(features)/generative-ai/context/curation-and-embedding-context';
+import { InfiniteRAGDatabasesProvider } from '@/(features)/generative-ai/context/infinite-rag-databases-context';
+import { ChatWithDatabaseProvider } from '@/(features)/generative-ai/context/chat-with-database-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -45,7 +47,11 @@ export default function RootLayout({
                   <QueryStringSearchProvider>
                     <AvailableColumnsProvider>
                       <CurateAndEmbedProvider>
-                        {children}
+                        <InfiniteRAGDatabasesProvider>
+                          <ChatWithDatabaseProvider>
+                            {children}
+                          </ChatWithDatabaseProvider>
+                        </InfiniteRAGDatabasesProvider>
                       </CurateAndEmbedProvider>
                     </AvailableColumnsProvider>
                   </QueryStringSearchProvider>

@@ -1,6 +1,6 @@
 'use server';
 import { ESClient, InitializeIndexes } from '@/clients/elastic-search';
-import { IngestionType } from '../types/intestion-type';
+import { IngestionType } from '../types/ingestion-type';
 import { InfinitePayload } from '@/types/infinite-payload';
 
 export const InfiniteIngestionsAction = async (page: number) => {

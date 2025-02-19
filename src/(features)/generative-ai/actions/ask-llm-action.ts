@@ -19,6 +19,7 @@ const availableAgents = {
 export const AskLLMAction = async (defaultModel: string, prompt: string) => {
   try {
     const combinedMessages = [{ role: 'user', content: prompt }];
+    console.log('AskLLMAction prompt:', prompt);
 
     const initialCall = await LLMClient.chat({
       model: defaultModel,
@@ -44,11 +45,6 @@ export const AskLLMAction = async (defaultModel: string, prompt: string) => {
           console.log('Calling function:', tool.function.name);
           console.log('Arguments:', tool.function.arguments);
 
-          // const parsedArgs =
-          //   typeof tool.function.arguments === 'string'
-          //     ? JSON.parse(tool.function.arguments)
-          //     : tool.function.arguments;
-
           output = await functionToCall(tool.function.arguments);
           console.log('Function output:', output);
 
@@ -64,7 +60,7 @@ export const AskLLMAction = async (defaultModel: string, prompt: string) => {
     } else {
       console.log('No function calls found in the response');
     }
-    console.log('combinedMessages:', combinedMessages);
+
     return await LLMClient.chat({
       model: 'command-r7b',
       messages: combinedMessages,

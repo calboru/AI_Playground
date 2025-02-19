@@ -4,7 +4,7 @@ import { parseString } from '@fast-csv/parse';
 import { faker } from '@faker-js/faker';
 import { ESClient, InitializeIndexes } from '@/clients/elastic-search';
 import { GenericResponse } from '@/app/types/generic-response-type';
-import { IngestionType } from '../types/intestion-type';
+import { IngestionType } from '../types/ingestion-type';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
