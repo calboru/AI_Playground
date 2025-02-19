@@ -13,31 +13,41 @@ export const jsonToMarkdown = (data: unknown, columns?: string[]): string => {
           .map((item) => `\n${indent}- ${processValue(item, indent)}`)
           .join('');
       }
+
       let entries = Object.entries(x as Record<string, unknown>);
 
-      // Filter based on the selected columns (if provided)
-      if (columns && columns.length > 0) {
+      if (columns?.length) {
         entries = entries.filter(([key]) => columns.includes(key));
       }
 
-      if (entries.length === 0) return '{}';
+      if (!entries.length) return '{}';
 
-      return entries
-        .map(
-          ([key, value]) =>
-            `\n${indent}**${key}:** ${processValue(value, indent + '  ')}\n`
-        )
-        .join('');
+      let result = ''; // Accumulate the result
+
+      for (const [key, value] of entries) {
+        // Iterate to avoid extra newline at the beginning
+        const processedValue = processValue(value, indent);
+        if (result) {
+          // Add newline only if there's previous content
+          result += '\n';
+        }
+        result += `${indent}**${key}:** `; // Key and colon, space after
+        if (processedValue.includes('\n')) {
+          result += `\n${processedValue}`; // Multi-line: Add newline before value
+        } else {
+          result += processedValue; // Single-line: Value on the same line
+        }
+      }
+      return result;
     },
-    number: (x) => (x as number).toString(),
+    number: String,
     boolean: (x) => (x ? 'true' : 'false'),
-    string: (x) => `"${x}"`,
+    string: String,
     function: () => '[Function]',
   };
 
   const processValue = (value: unknown, indent: string): string => {
-    const handler = handlers[typeof value] || handlers.object;
-    return handler(value, indent);
+    return (handlers[typeof value] || handlers.object)(value, indent);
   };
 
   return processValue(data, indentLevel);

@@ -2,11 +2,13 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { useInfiniteRAGDatabases } from './infinite-rag-databases-context';
 import { ChatWithDatabaseAction } from '../actions/chat-with-database-action';
+import { jsonToMarkdown } from '../actions/convert-json-to-markdown';
 
 interface IChatWithDatabaseContext {
   chatResponse: string;
   ask: (userPrompt: string, searchTerm?: string) => void;
-  isLoading: boolean;
+  isThinking: boolean;
+  ragSources: string[];
 }
 
 const ChatWithDatabaseContext = createContext<
@@ -28,11 +30,12 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [chatResponse, setChatResponse] = useState<string>('');
   const { selectedRAGDatabase } = useInfiniteRAGDatabases();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [ragSources, setRagSources] = useState<string[]>([]);
 
   const handleAsk = async (userPrompt: string, searchTerm?: string) => {
     try {
-      setIsLoading(true);
+      setIsThinking(true);
       setChatResponse('');
       const chatStream = await ChatWithDatabaseAction(
         selectedRAGDatabase?.rag_index_name ?? '',
@@ -51,20 +54,26 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
 
         const decodedValue = JSON.parse(decoder.decode(value));
 
+        if (decodedValue?.context) {
+          (decodedValue?.context ?? []).forEach((source: string) => {
+            setRagSources((prev) => [...prev, jsonToMarkdown(source)]);
+          });
+        }
+
         if (decodedValue?.answer) {
           setChatResponse((prev) => prev + decodedValue.answer);
         }
       }
-      setIsLoading(false);
+      setIsThinking(false);
     } catch (error) {
-      setIsLoading(false);
+      setIsThinking(false);
       console.log(error);
     }
   };
 
   return (
     <ChatWithDatabaseContext.Provider
-      value={{ isLoading, chatResponse, ask: handleAsk }}
+      value={{ ragSources, isThinking, chatResponse, ask: handleAsk }}
     >
       {children}
     </ChatWithDatabaseContext.Provider>
