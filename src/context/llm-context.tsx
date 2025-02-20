@@ -17,7 +17,8 @@ const LLMContext = createContext<ILLMContext | undefined>(undefined);
 export const LLMProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [defaultModel, setDefaultModel] = useState<string>('zephyr');
+  const [defaultModel, setDefaultModel] =
+    useState<string>('command-r7b:latest');
   const [listOfModels, setListOfModels] = useState<LLMType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 

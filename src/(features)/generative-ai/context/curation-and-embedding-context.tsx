@@ -16,6 +16,11 @@ import { useQueryStringSearch } from './querystring-search-context';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 import { useToast } from '@/hooks/use-toast';
 import { EmbeddingPrompt } from '@/lib/prompts';
+import {
+  SearchInEuropeanMedicinesAgencyDatabaseAgent,
+  SearchInFoodAndDrugAdministrationDatabaseAgent,
+} from '../actions/ollama-agents/agents';
+
 interface ICurateAndEmbedContext {
   prompt: string;
   response: string;
@@ -52,13 +57,19 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
   );
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [iterator, setIterator] =
-    useState<AbortableAsyncIterator<ChatResponse> | null>(null);
+  const [iterator, setIterator] = useState<
+    AbortableAsyncIterator<ChatResponse> | ChatResponse | null
+  >();
   const [embeddingEvent, setEmbeddingEvent] =
     useState<EmbeddingEventType | null>(null);
 
   const { searchTerm } = useQueryStringSearch();
   const { selectedIngestion } = useInfiniteIngestionContent();
+
+  const tools = [
+    SearchInFoodAndDrugAdministrationDatabaseAgent,
+    SearchInEuropeanMedicinesAgencyDatabaseAgent,
+  ];
 
   const handleAsk = async (markdownText: string, prompt: string) => {
     try {
@@ -66,10 +77,13 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
       setPrompt(prompt.trim());
       setResponse('');
 
-      const res = await AskLLMAction(
+      const res = (await AskLLMAction(
         selectedModel,
-        EmbeddingPrompt(markdownText, prompt)
-      );
+        EmbeddingPrompt(markdownText, prompt),
+        tools,
+        true
+      )) as AbortableAsyncIterator<ChatResponse>;
+
       setIterator(res); // Store the iterator for aborting later
 
       for await (const chunk of res) {
@@ -85,7 +99,7 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
 
   const handleAbort = () => {
     if (iterator) {
-      iterator.abort(); // Abort the async stream
+      (iterator as AbortableAsyncIterator<ChatResponse>).abort(); // Abort the async stream
       setIsLoading(false);
       setIterator(null); // Reset iterator
     }

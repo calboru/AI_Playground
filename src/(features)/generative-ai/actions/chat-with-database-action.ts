@@ -1,8 +1,9 @@
 'use server';
+
 import { OllamaEmbeddings } from '@langchain/ollama';
 import {
-  type ElasticClientArgs,
   ElasticVectorSearch,
+  type ElasticClientArgs,
 } from '@langchain/community/vectorstores/elasticsearch';
 import { ESClient } from '@/clients/elastic-search';
 import {
@@ -16,6 +17,8 @@ import { Ollama } from '@langchain/ollama';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { pull } from 'langchain/hub';
 import { Document } from '@langchain/core/documents';
+import { AskLLMAction } from './ask-llm-action';
+import { ExchangeRateAgent } from './ollama-agents/agents';
 
 const embeddings = new OllamaEmbeddings({
   model: 'mxbai-embed-large',
@@ -23,57 +26,67 @@ const embeddings = new OllamaEmbeddings({
 });
 
 const createVectorStore = (indexName: string) => {
-  const clientArgs: ElasticClientArgs = {
-    client: ESClient,
-    indexName: indexName,
-  };
-  const elasticSearchVectorStore = new ElasticVectorSearch(
-    embeddings,
-    clientArgs
-  );
-  return elasticSearchVectorStore;
+  const clientArgs: ElasticClientArgs = { client: ESClient, indexName };
+  return new ElasticVectorSearch(embeddings, clientArgs);
 };
 
 export const ChatWithDatabaseAction = async (
   indexName: string,
   prompt: string,
+  selectedLLM: string,
   searchTerm?: string
-) => {
+): Promise<ReadableStream<Uint8Array> | undefined> => {
   try {
     const vectorStore = createVectorStore(indexName);
+    const filter = searchTerm
+      ? [{ operator: 'match', field: 'text', value: searchTerm }]
+      : {};
 
-    const filter = {};
-    //CURRENTLY QUERY STRING QUERY IS NOT WORKING
-    //   [
-    //     {
-    //       operator: 'query_string',
-    //       field: null,
-    //       value: searchTerm,
-    //     },
-    //   ];
-    console.log(searchTerm);
+    // Base instruction with prompt moved to the end
+    const instruction = `Analyze the user's prompt to determine if it requires Ollama tools/agents to respond User's prompt: "${prompt}"`;
+
+    const res2 = (await AskLLMAction(
+      'llama3.2', // Or 'llama3.2' if available
+      instruction,
+      [ExchangeRateAgent],
+      false,
+      true
+    )) as string[];
+
+    console.log('AGENT CALL RESPONSE', res2);
+
+    const toolResponseDocuments: Document<Record<string, unknown>>[] = [];
+
+    for (const response of res2) {
+      toolResponseDocuments.push({
+        pageContent: response,
+        metadata: {
+          source: 'Ollama Agent',
+        },
+      });
+    }
+
     const llm = new Ollama({
-      model: 'command-r7b', // Default value
+      model: selectedLLM,
       temperature: 0,
       maxRetries: 2,
       baseUrl: process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
     });
 
     const promptTemplate = await pull<ChatPromptTemplate>('rlm/rag-prompt');
-
     const ragChainWithSources = RunnableMap.from({
-      // Return raw documents here for now since we want to return them at
-      // the end - we'll format in the next step of the chain
-      context: vectorStore.asRetriever({ filter: filter }),
+      context: vectorStore.asRetriever({ filter }),
       question: new RunnablePassthrough(),
     }).assign({
       answer: RunnableSequence.from([
         (input) => {
+          const contextDocs = input.context as Document<
+            Record<string, unknown>
+          >[];
+          const allDocs = [...contextDocs, ...toolResponseDocuments];
+
           return {
-            // Now we format the documents as strings for the prompt
-            context: formatDocumentsAsString(
-              input.context as Document<Record<string, unknown>>[]
-            ),
+            context: formatDocumentsAsString(allDocs),
             question: input.question,
           };
         },
@@ -94,43 +107,7 @@ export const ChatWithDatabaseAction = async (
       },
     });
   } catch (error) {
-    console.log(error);
+    console.error('Error in ChatWithDatabaseAction:', error);
+    return undefined;
   }
 };
-
-// import { Ollama } from '@langchain/community/llms/ollama';
-// import { initializeAgentExecutorWithOptions } from 'langchain/agents';
-// import { Tool } from 'langchain/tools';
-// import { Calculator } from 'langchain/tools/calculator';
-
-// // Define your LLM instance
-// const llm = new Ollama({
-//   model: 'command-r7b',
-//   temperature: 0,
-//   maxRetries: 2,
-//   baseUrl: process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
-// });
-
-// // Example: Custom Tool (Function)
-// class CustomSearchTool extends Tool {
-//   name = 'custom_search';
-//   description = 'Search for information using a custom API.';
-
-//   async _call(input: string) {
-//     return `Searching for: ${input}`;
-//   }
-// }
-
-// // Define tools (you can add multiple)
-// const tools = [new Calculator(), new CustomSearchTool()];
-
-// // Create an Agent Executor
-// const agent = await initializeAgentExecutorWithOptions(tools, llm, {
-//   agentType: 'zero-shot-react-description', // Define behavior
-//   verbose: true,
-// });
-
-// // Run the agent with a query
-// const response = await agent.call({ input: 'What is 12 * 8?' });
-
-// console.log(response);

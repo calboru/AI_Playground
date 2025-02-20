@@ -3,6 +3,7 @@ import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { useInfiniteRAGDatabases } from './infinite-rag-databases-context';
 import { ChatWithDatabaseAction } from '../actions/chat-with-database-action';
 import { jsonToMarkdown } from '../actions/convert-json-to-markdown';
+import { useLLM } from '@/context/llm-context';
 
 interface IChatWithDatabaseContext {
   chatResponse: string;
@@ -32,6 +33,7 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
   const { selectedRAGDatabase } = useInfiniteRAGDatabases();
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [ragSources, setRagSources] = useState<string[]>([]);
+  const { selectedModel } = useLLM();
 
   const handleAsk = async (userPrompt: string, searchTerm?: string) => {
     try {
@@ -40,6 +42,7 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
       const chatStream = await ChatWithDatabaseAction(
         selectedRAGDatabase?.rag_index_name ?? '',
         userPrompt,
+        selectedModel,
         searchTerm
       );
       if (!chatStream) {

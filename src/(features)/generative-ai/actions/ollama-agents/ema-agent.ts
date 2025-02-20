@@ -1,5 +1,3 @@
-//import { jsonToMarkdown } from '../convert-json-to-markdown';
-
 import { LLMClient } from '@/clients/llm-client';
 
 export const SearchInEuropeanMedicinesAgencyDatabase = async (args: {
@@ -17,22 +15,4 @@ export const SearchInEuropeanMedicinesAgencyDatabase = async (args: {
     console.error(error);
     throw error;
   }
-};
-
-export const SearchInEuropeanMedicinesAgencyDatabaseAgent = {
-  type: 'function',
-  function: {
-    name: 'SearchInEuropeanMedicinesAgencyDatabase',
-    description: 'Search anything in European Medicines Agency Database',
-    parameters: {
-      type: 'object',
-      required: ['promptOrQuestion'],
-      properties: {
-        promptOrQuestion: {
-          type: 'string',
-          description: 'prompt or question',
-        },
-      },
-    },
-  },
 };

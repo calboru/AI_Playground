@@ -12,6 +12,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BotMessageSquare } from 'lucide-react';
 import ViewRAGSourcesDialog from './view-rag-sources-dialog';
+import LLMModelListDropdown from '@/components/llm-dropdown';
 // Zod Schema
 const chatSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
@@ -79,7 +80,11 @@ const ChatWithDatabase = () => {
               {...register('searchTerm')}
             />
           </div>
-          <div className='flex w-full flex-row space-x-1  justify-end'>
+          <div className='flex w-full flex-row space-x-3 items-center  justify-end'>
+            <div className='flex flex-row space-x-2 items-center rounded-md shadow border bg-white p-1'>
+              <span className='font-bold'>Select LLM:</span>
+              <LLMModelListDropdown />
+            </div>
             <ViewRAGSourcesDialog
               disabled={
                 !selectedRAGDatabase ||
