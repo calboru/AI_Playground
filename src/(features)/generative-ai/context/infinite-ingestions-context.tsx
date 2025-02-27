@@ -1,14 +1,7 @@
 'use client';
-import React, {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-} from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { IngestionType } from '../types/ingestion-type';
 import { InfiniteIngestionsAction } from '../actions/infinite-ingestions-action';
-import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 
 interface IInfiniteIngestionsContext {
   ingestions: IngestionType[];
@@ -26,12 +19,6 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [ingestions, setIngestions] = useState<IngestionType[]>([]);
   const [cursor, setCursor] = useState(0);
-  const { selectedIngestion } = useInfiniteIngestionContent();
-
-  useEffect(() => {
-    setCursor(0);
-    setIngestions([]);
-  }, [selectedIngestion]);
 
   const fetchMore = async () => {
     try {

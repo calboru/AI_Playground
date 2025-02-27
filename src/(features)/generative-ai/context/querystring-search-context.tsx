@@ -1,17 +1,25 @@
 'use client';
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useContext,
+  useState,
+} from 'react';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 import { QueryStringSearchAction } from '../actions/query-string-search-action';
 import { useToast } from '@/hooks/use-toast';
 
 interface IQueryStringSearchContext {
   searchTerm: string;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
   search: (searchTerm: string, newSearch: boolean) => void;
   fetchMore: () => void;
   content: unknown[];
   cursor: number;
   searchIsPerformed: boolean;
-  resetSearch: () => void;
+  resetSearch: (callback?: () => void) => void;
   isSearching: boolean;
   totalDocuments: number;
   took: number;
@@ -107,6 +115,13 @@ export const QueryStringSearchProvider: React.FC<
     [searchTerm, selectedIngestion?.index_name, cursor, toast] // Dependencies
   );
 
+  const handleReset = (callback?: () => void) => {
+    setSearchTerm('');
+    if (callback) {
+      callback();
+    }
+  };
+
   return (
     <QueryStringSearchContext.Provider
       value={{
@@ -116,10 +131,11 @@ export const QueryStringSearchProvider: React.FC<
         isSearching,
         searchTerm,
         search: handleSearch,
+        setSearchTerm: setSearchTerm,
         content,
         cursor,
         searchIsPerformed: searchTerm.length > 0,
-        resetSearch: () => setSearchTerm(''),
+        resetSearch: handleReset,
       }}
     >
       {children}

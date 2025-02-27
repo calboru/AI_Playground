@@ -24,7 +24,7 @@ const QueryStringSearchForm = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
   });
@@ -52,7 +52,7 @@ const QueryStringSearchForm = () => {
             {...register('searchTerm')}
           />
           <Button
-            disabled={combinedLoading}
+            disabled={combinedLoading || !isValid}
             className='bg-orange-500 hover:bg-orange-700 text-white'
             type='submit'
           >

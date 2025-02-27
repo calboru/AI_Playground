@@ -13,6 +13,7 @@ import { LLMProvider } from '@/context/llm-context';
 import { CurateAndEmbedProvider } from '@/(features)/generative-ai/context/curation-and-embedding-context';
 import { InfiniteRAGDatabasesProvider } from '@/(features)/generative-ai/context/infinite-rag-databases-context';
 import { ChatWithDatabaseProvider } from '@/(features)/generative-ai/context/chat-with-database-context';
+import { GenerativeAIProvider } from '@/(features)/generative-ai/context/generative-ai-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -40,25 +41,27 @@ export default function RootLayout({
       >
         <MainLayoutHeader />
         <AppProvider>
-          <LLMProvider>
-            <InfiniteIngestionContentProvider>
-              <InfiniteIngestionsProvider>
-                <IngestionProvider>
-                  <QueryStringSearchProvider>
-                    <AvailableColumnsProvider>
-                      <CurateAndEmbedProvider>
-                        <InfiniteRAGDatabasesProvider>
-                          <ChatWithDatabaseProvider>
-                            {children}
-                          </ChatWithDatabaseProvider>
-                        </InfiniteRAGDatabasesProvider>
-                      </CurateAndEmbedProvider>
-                    </AvailableColumnsProvider>
-                  </QueryStringSearchProvider>
-                </IngestionProvider>
-              </InfiniteIngestionsProvider>
-            </InfiniteIngestionContentProvider>
-          </LLMProvider>
+          <GenerativeAIProvider>
+            <LLMProvider>
+              <InfiniteIngestionContentProvider>
+                <InfiniteIngestionsProvider>
+                  <IngestionProvider>
+                    <QueryStringSearchProvider>
+                      <AvailableColumnsProvider>
+                        <CurateAndEmbedProvider>
+                          <InfiniteRAGDatabasesProvider>
+                            <ChatWithDatabaseProvider>
+                              {children}
+                            </ChatWithDatabaseProvider>
+                          </InfiniteRAGDatabasesProvider>
+                        </CurateAndEmbedProvider>
+                      </AvailableColumnsProvider>
+                    </QueryStringSearchProvider>
+                  </IngestionProvider>
+                </InfiniteIngestionsProvider>
+              </InfiniteIngestionContentProvider>
+            </LLMProvider>
+          </GenerativeAIProvider>
         </AppProvider>
         <Toaster />
       </body>

@@ -6,9 +6,11 @@ import { IngestionCardMenu } from './ingestion-card-menu';
 
 import { useInfiniteIngestionContent } from '../context/infinite-ingestion-content-context';
 import { Search } from 'lucide-react';
+import { useQueryStringSearch } from '../context/querystring-search-context';
 
 const IngestionCard = ({ data }: { data: IngestionType }) => {
   const { resetCursor, selectIngestion } = useInfiniteIngestionContent();
+  const { resetSearch } = useQueryStringSearch();
   return (
     <div className='rounded-lg shadow-md border p-2 flex  flex-col space-y-1  bg-secondary  hover:shadow-md transition duration-200'>
       <div className='w-full flex flex-row items-center  '>
@@ -29,11 +31,13 @@ const IngestionCard = ({ data }: { data: IngestionType }) => {
           {data.ingestion_description}
         </p>
       </div>
-      <div className='  w-full  flex   justify-between       '>
+      <div className='  w-full  flex   justify-between '>
         <Button
+          type='button'
           onClick={() => {
             resetCursor();
             selectIngestion(data);
+            resetSearch();
           }}
           size='sm'
           variant='outline'
