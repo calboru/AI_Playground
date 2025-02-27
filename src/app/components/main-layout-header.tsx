@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, Share } from 'lucide-react';
 
 import GenerativeAILogo from '@/(features)/generative-ai/components/generative-ai-logo';
+import Link from 'next/link';
 
 const MainLayoutHeader = () => {
   return (
@@ -11,10 +12,15 @@ const MainLayoutHeader = () => {
 
       <div className='flex items-center gap-3'>
         <Button className='bg-blue-600 hover:bg-blue-700 text-white'>
-          <Share className='w-4 h-4 mr-1' /> Ingest
+          <Link className='flex flex-row space-x-1 items-center' href='/'>
+            <Share className='w-4 h-4  ' /> <span>Ingestions</span>
+          </Link>
         </Button>
         <Button className='bg-purple-600 hover:bg-purple-700 text-white'>
-          <MessageCircle className='w-4 h-4 mr-1' /> Chat
+          <Link className='flex flex-row space-x-1 items-center' href='/chat'>
+            <MessageCircle className='w-4 h-4 mr-1' />
+            <span>Chat</span>
+          </Link>
         </Button>
       </div>
     </header>

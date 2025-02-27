@@ -98,7 +98,7 @@ const IngestionUploadDialog = () => {
           className='grow mt-1 mr-3 ml-3 bg-blue-600 hover:bg-blue-700 text-white'
         >
           <Upload />
-          <span>Create new</span>
+          <span>Create new ingestion</span>
         </Button>
       </DialogTrigger>
       <DialogContent className='min-w-[700px]'>

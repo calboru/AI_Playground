@@ -1,51 +1,64 @@
 import React from 'react';
 import { IngestionType } from '../types/ingestion-type';
-import { Button } from '@/components/ui/button';
-
 import { IngestionCardMenu } from './ingestion-card-menu';
-
 import { useInfiniteIngestionContent } from '../context/infinite-ingestion-content-context';
-import { Search } from 'lucide-react';
 import { useQueryStringSearch } from '../context/querystring-search-context';
 
 const IngestionCard = ({ data }: { data: IngestionType }) => {
   const { resetCursor, selectIngestion } = useInfiniteIngestionContent();
   const { resetSearch } = useQueryStringSearch();
+
+  const handleClick = () => {
+    resetCursor();
+    selectIngestion(data);
+    resetSearch();
+  };
+
   return (
-    <div className='rounded-lg shadow-md border p-2 flex  flex-col space-y-1  bg-secondary  hover:shadow-md transition duration-200'>
-      <div className='w-full flex flex-row items-center  '>
-        {/* justify-end is not working */}
-        <div className='flex flex-col space-y-1 w-full'>
-          <span className='text-xs font-extralight text-gray-800'>
-            Ingested on: {new Date(data.created_at).toLocaleString()}
+    <div
+      onClick={handleClick}
+      className='rounded-lg cursor-pointer shadow-lg border hover:border-orange-600 hover:border-2  border-slate-400   flex  flex-col    bg-white-200   hover:shadow-2xl transition duration-400'
+    >
+      <div className='w-full  border-b '>
+        <div className='w-full p-2 justify-between items-center flex'>
+          <span className='text-xs   text-gray-800'>
+            Ingestion Date: {new Date(data.created_at).toLocaleString()}
           </span>
-        </div>
-        <div>
-          <IngestionCardMenu />
+          <div>
+            <IngestionCardMenu />
+          </div>
         </div>
       </div>
 
-      <div className='w-full flex flex-col space-y-1 p-3 text-sm rounded-md border bg-white '>
-        <p className=' text-sm text-blue-600  p-1'>
-          {/* Added line clamping */}
-          {data.ingestion_description}
-        </p>
+      <p className='text-lg text-orange-600 font-bold p-2   '>
+        {/* Added line clamping */}
+        {data.ingestion_description}
+      </p>
+
+      <div className='flex justify-start border-t  w-full'>
+        <span className='text-xs   p-2 text-gray-800'>
+          Total Documents: {data.total_documents.toLocaleString()}
+        </span>
       </div>
-      <div className='  w-full  flex   justify-between '>
-        <Button
-          type='button'
-          onClick={() => {
-            resetCursor();
-            selectIngestion(data);
-            resetSearch();
-          }}
-          size='sm'
-          variant='outline'
-          className='w-full flex items-center justify-center'
-        >
-          <Search />
-          View {data.total_documents.toLocaleString()} Documents
-        </Button>
+
+      <div className='flex-row  w-full  flex   justify-between '>
+        <div></div>
+        <div>
+          {/* <Button
+            type='button'
+            onClick={() => {
+              resetCursor();
+              selectIngestion(data);
+              resetSearch();
+            }}
+            size='sm'
+            variant='outline'
+            className='bg-orange-500 hover:bg-orange-600 text-white hover:text-white'
+          >
+            <SearchCode />
+            Search Documents
+          </Button> */}
+        </div>
       </div>
     </div>
   );

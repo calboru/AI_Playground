@@ -21,16 +21,21 @@ const IngestionSources = () => {
 
   return (
     <section className='rounded-xl max-w-xs flex flex-col space-y-2 m-1 bg-white w-full border border-slate-300'>
-      <div className='border-b-2 flex items-center w-full justify-center '>
+      <div className='border-b-2 flex flex-col items-center w-full justify-center '>
         <div className='p-2 flex flex-row w-full items-center  justify-start'>
-          <div className='flex font-bold text-xl text-blue-600 w-full '>
-            Ingestions
+          <div className='flex flex-col w-full '>
+            <span className='font-bold text-xl text-blue-600'>Ingestions</span>
+            <p className='text-xs w-full text-slate-600  '>
+              Select ingestion to search documents
+            </p>
           </div>
+
           <div>
             <Spinner isLoading={isLoading} />
           </div>
         </div>
       </div>
+
       <div className='w-full items-center justify-center   flex  '>
         <IngestionUploadDialog />
       </div>

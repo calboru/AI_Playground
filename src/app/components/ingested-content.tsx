@@ -29,8 +29,10 @@ const IngestedContent = () => {
         </div>
         <div className='p-2 flex flex-row justify-between'>
           <div className='flex flex-row space-x-1 items-center'>
-            <span className='font-bold text-xl text-blue-600'>Search in:</span>
-            <span className='text-orange-500  text-xl'>
+            <span className='font-bold text-xl text-orange-600'>
+              Search in:
+            </span>
+            <span className='text-orange-600  text-xl'>
               {selectedIngestion?.ingestion_description}
             </span>
           </div>

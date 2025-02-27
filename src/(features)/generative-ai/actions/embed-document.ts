@@ -41,15 +41,18 @@ const updateRAGIndex = async (
       });
     }
 
-    await ESClient.index({
+    await ESClient.update({
       index: 'rag-index',
-      document: {
+      id: ragIndexName,
+      doc: {
         ingestion_description: ingestionDescription,
         rag_index_name: ragIndexName,
         raw_index_name: indexName,
         created_at: new Date(),
       },
+      doc_as_upsert: true,
     });
+    console.log('upserting....');
   } catch (error) {
     console.log(error);
     throw error;

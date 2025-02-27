@@ -1,6 +1,5 @@
 import { Ellipsis, Plus, Trash2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +15,9 @@ export function IngestionCardMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant='ghost' className='' size='sm'>
+        <span>
           <Ellipsis />
-        </Button>
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent className='w-56'>
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
