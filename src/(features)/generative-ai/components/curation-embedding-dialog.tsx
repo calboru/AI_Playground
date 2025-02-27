@@ -22,6 +22,7 @@ const CurationEmbeddingDialog = () => {
         <Button
           onClick={() => openCurationDialog(curationDialogOpen)}
           type='button'
+          className='bg-rose-500 hover:bg-rose-700 text-white'
         >
           <Combine />
           <span>Create Embedding</span>

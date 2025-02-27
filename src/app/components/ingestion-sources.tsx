@@ -20,10 +20,12 @@ const IngestionSources = () => {
   }, [isInView]);
 
   return (
-    <section className='rounded-md max-w-xs flex flex-col space-y-2  bg-white w-full border'>
-      <div className='border-b-2 flex items-center w-full justify-center'>
-        <div className='p-1 flex flex-row w-full items-center justify-center'>
-          <span className='flex font-bold text-xl font-mono'>Ingestions</span>
+    <section className='rounded-xl max-w-xs flex flex-col space-y-2 m-1 bg-white w-full border border-slate-300'>
+      <div className='border-b-2 flex items-center w-full justify-center '>
+        <div className='p-2 flex flex-row w-full items-center  justify-start'>
+          <div className='flex font-bold text-xl text-blue-600 w-full '>
+            Ingestions
+          </div>
           <div>
             <Spinner isLoading={isLoading} />
           </div>

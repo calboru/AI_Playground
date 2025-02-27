@@ -10,7 +10,12 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        orbitron: ['Orbitron', 'sans-serif', 'Inter'],
+      },
       colors: {
+        'custom-dark': '#2D3748',
+        'custom-light': '#F9FAFB',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

@@ -154,6 +154,7 @@ const curateWithUserPrompt = async (
   userPrompt: string
 ) => {
   if (userPrompt?.trim() === '') {
+    console.log('returning markdown text.........');
     return markdownText;
   }
   const answer = await LLMClient.chat({
@@ -271,6 +272,7 @@ export const EmbedAllDocumentsAction = async (
 
             PublishEmbeddingEvent(embeddingEventForDocument, controller);
           }
+          console.log('RESPONSES TO EMBED', responses);
 
           await vectorStore.addDocuments(responses);
 

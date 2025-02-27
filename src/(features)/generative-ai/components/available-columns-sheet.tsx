@@ -35,7 +35,7 @@ const AvailableColumnsSheet = () => {
       <SheetTrigger>
         <span className='text-blue-500 text-sm font-extralight flex flex-row cursor-pointer  space-x-1 border-b-2   items-center'>
           <List className='h-4 w-4' />
-          <span>View columns</span>
+          <span>View available columns</span>
         </span>
       </SheetTrigger>
       <SheetContent>

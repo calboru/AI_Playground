@@ -75,7 +75,10 @@ export const ChatWithDatabaseAction = async (
 
     const promptTemplate = await pull<ChatPromptTemplate>('rlm/rag-prompt');
     const ragChainWithSources = RunnableMap.from({
-      context: vectorStore.asRetriever({ filter }),
+      context: vectorStore.asRetriever(
+        { filter },
+        { k: 10, includeMetadata: true }
+      ),
       question: new RunnablePassthrough(),
     }).assign({
       answer: RunnableSequence.from([

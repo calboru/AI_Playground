@@ -36,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased grow h-lvh  bg-slate-100 overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased grow h-lvh bg-indigo-100    overflow-hidden`}
       >
         <MainLayoutHeader />
         <AppProvider>

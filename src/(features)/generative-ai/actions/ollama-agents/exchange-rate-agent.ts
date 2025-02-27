@@ -15,11 +15,7 @@ export const ExchangeRateTool = async (params: ExchangeRateParams) => {
       console.log(
         `Whooohooo The exchange rate of 1 USD to ${params.ThreeLetterCurrencyCode} is ${rate}`
       );
-      return `As of today 1 USD is ${rate} ${
-        params.ThreeLetterCurrencyCode
-      }, or in other words, 1 ${params.ThreeLetterCurrencyCode} is ${
-        1 / rate
-      } USD.`;
+      return `As of today 1 USD is ${rate} ${params.ThreeLetterCurrencyCode}`;
     } else {
       return `No exchange rate found for ${params.ThreeLetterCurrencyCode}`;
     }

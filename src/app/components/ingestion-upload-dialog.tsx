@@ -95,8 +95,7 @@ const IngestionUploadDialog = () => {
       <DialogTrigger asChild>
         <Button
           onClick={() => openIngestionDialog(!ingestionDialogOpen)}
-          variant='outline'
-          className='grow mt-1 mr-3 ml-3'
+          className='grow mt-1 mr-3 ml-3 bg-blue-600 hover:bg-blue-700 text-white'
         >
           <Upload />
           <span>Create new</span>

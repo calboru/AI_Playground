@@ -135,7 +135,9 @@ const CurationAndEmbeddingForm = () => {
         <div className='flex flex-row space-x-2 p-2 text-sm w-full'>
           {/* Available Columns */}
           <div className='p-2 border rounded shadow w-1/2 bg-white'>
-            <div className='border-b-2 font-bold p-1'>Available Columns</div>
+            <div className='border-b-2 font-bold p-1'>
+              Available Data Points
+            </div>
             <div className='overflow-y-auto max-h-80 p-2'>
               {availableColumns.map((item) => (
                 <FormField

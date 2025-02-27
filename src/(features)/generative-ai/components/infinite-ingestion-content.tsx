@@ -17,7 +17,7 @@ const InfiniteIngestionContent = () => {
   }, [isInView, selectedIngestion, fetchMore]);
 
   return (
-    <div className='flex w-full space-y-2 flex-col p-2'>
+    <div className='flex w-full space-y-2 flex-col '>
       {content.map((data, idx) => (
         <IngestionContentCard
           data={data}

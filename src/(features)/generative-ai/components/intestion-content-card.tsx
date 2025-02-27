@@ -15,17 +15,17 @@ const IngestionContentCard = ({
   const relevanceScore = (data as { relevance_score: number })?.relevance_score;
 
   return (
-    <div className='w-full flex flex-col space-y-1 grow border rounded bg-slate-100 p-2 text-sm shadow-md font-extralight   '>
-      <div className='flex flex-row  justify-between  p-1 font-extralight text-sm'>
+    <div className='w-full flex flex-col space-y-1 grow border rounded-xl border-slate-300 bg-white   text-sm shadow-md    '>
+      <div className='flex flex-row  justify-between    border-b p-2 border-b-slate-300 text-sm'>
         {relevanceScore > 0 && (
-          <div className='flex flex-row space-x-2  border p-1 rounded-md bg-white shadow-md text-red-500 italic'>
-            <span>Score:</span>
+          <div className='flex flex-row space-x-2 font-bold  rounded-md   shadow-md    p-2  text-red-500 italic'>
+            <span>Relevance score:</span>
             <span>{relevanceScore}</span>
           </div>
         )}
 
-        <div></div>
-        <div className='flex flex-row space-x-2  border p-1 rounded-md bg-white shadow-md  italic'>
+        <div>{/* left pane */}</div>
+        <div className='flex flex-row space-x-2  p-2 rounded-md   shadow-md  italic'>
           <span className='font-semibold'>Document:</span>
           <span> {(index + 1).toLocaleString()}</span>
           <span>of</span>
@@ -36,7 +36,7 @@ const IngestionContentCard = ({
           </span>
         </div>
       </div>
-      <div className='bg-white rounded-sm p-1 shadow  border-2'>
+      <div className='p-1 m-2 '>
         {Object.entries(data as { [key: string]: unknown }).map(
           ([key, value]) => (
             <div className='p-1   w-full break-words ' key={key}>
