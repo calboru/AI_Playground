@@ -11,13 +11,9 @@ import { useInfiniteRAGDatabases } from './infinite-rag-databases-context';
 import { ChatWithDatabaseAction } from '../actions/chat-with-database-action';
 import { jsonToMarkdown } from '../actions/convert-json-to-markdown';
 import { useLLM } from '@/context/llm-context';
+import { ChatEntry } from '../types/chat-entry-type';
 
 // Define the chat entry type for history
-interface ChatEntry {
-  prompt: string;
-  response: string;
-  timestamp: string; // Optional: for sorting or display purposes
-}
 
 // Update the context interface to include chat history
 interface IChatWithDatabaseContext {
@@ -59,12 +55,34 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
   const [userPrompt, setUserPrompt] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  console.log('history', chatHistory);
-
   const handleAsk = async () => {
     try {
       setIsThinking(true);
       setChatResponse('');
+
+      const promptTime = new Date().toISOString();
+
+      setChatHistory((prev) => {
+        const existingEntryIndex = prev.findIndex(
+          (entry) =>
+            entry.prompt === userPrompt && entry.timestamp === promptTime
+        );
+        if (existingEntryIndex !== -1) {
+          const updatedHistory = [...prev];
+          updatedHistory[existingEntryIndex].response = '';
+          updatedHistory[existingEntryIndex].timestamp = promptTime;
+          return updatedHistory;
+        }
+        return [
+          ...prev,
+          {
+            prompt: userPrompt,
+            response: '',
+            timestamp: promptTime,
+          },
+        ];
+      });
+
       const chatStream = await ChatWithDatabaseAction(
         selectedRAGDatabase?.rag_index_name ?? '',
         userPrompt,
@@ -84,6 +102,7 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
 
         const decodedValue = JSON.parse(decoder.decode(value));
 
+        //RETRIEVED CONTEXT
         if (decodedValue?.context) {
           (decodedValue?.context ?? []).forEach((source: string) => {
             setRagSources((prev) => [...prev, jsonToMarkdown(source)]);
@@ -96,18 +115,22 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
         }
       }
 
-      // Add the prompt and response to chat history
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          prompt: userPrompt,
-          response: fullResponse,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      setChatResponse('');
+      setChatHistory((prev) => {
+        const existingEntryIndex = prev.findIndex(
+          (entry) =>
+            entry.prompt === userPrompt && entry.timestamp === promptTime
+        );
 
-      setUserPrompt(''); // Clear the prompt after submission
-      setSearchTerm(''); // Clear the search term
+        const updatedHistory = [...prev];
+        updatedHistory[existingEntryIndex].response = fullResponse;
+        updatedHistory[existingEntryIndex].timestamp = promptTime;
+        return updatedHistory;
+      });
+      // // Add the prompt and response to chat history
+      setUserPrompt('');
+      setSearchTerm('');
+
       setIsThinking(false);
     } catch (error) {
       setIsThinking(false);
@@ -120,6 +143,7 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
     setChatHistory([]);
     setChatResponse('');
     setRagSources([]);
+    setSearchTerm('');
   };
 
   return (
@@ -133,8 +157,8 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
         setUserPrompt,
         searchTerm,
         setSearchTerm,
-        chatHistory, // Provide chat history
-        clearChatHistory, // Provide clear history function
+        chatHistory,
+        clearChatHistory,
       }}
     >
       {children}
