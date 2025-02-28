@@ -38,7 +38,7 @@ export const SearchInFoodAndDrugAdministrationDatabaseAgent = {
 export const ExchangeRateAgent = {
   type: 'function',
   function: {
-    name: 'ExchangeRateTool',
+    name: 'ExchangeRateAgent',
     description: 'Returns the rate of the given three letter currency code',
     parameters: {
       type: 'object',

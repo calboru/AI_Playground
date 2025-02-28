@@ -1,9 +1,8 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Share } from 'lucide-react';
-
 import GenerativeAILogo from '@/(features)/generative-ai/components/generative-ai-logo';
-import Link from 'next/link';
 
 const MainLayoutHeader = () => {
   return (
@@ -12,15 +11,15 @@ const MainLayoutHeader = () => {
 
       <div className='flex items-center gap-3'>
         <Button className='bg-blue-600 hover:bg-blue-700 text-white'>
-          <Link className='flex flex-row space-x-1 items-center' href='/'>
+          <a className='flex flex-row space-x-1 items-center' href='/'>
             <Share className='w-4 h-4  ' /> <span>Ingestions</span>
-          </Link>
+          </a>
         </Button>
         <Button className='bg-purple-600 hover:bg-purple-700 text-white'>
-          <Link className='flex flex-row space-x-1 items-center' href='/chat'>
+          <a className='flex flex-row space-x-1 items-center' href='/chat'>
             <MessageCircle className='w-4 h-4 mr-1' />
             <span>Chat</span>
-          </Link>
+          </a>
         </Button>
       </div>
     </header>

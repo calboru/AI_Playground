@@ -87,7 +87,8 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
         selectedRAGDatabase?.rag_index_name ?? '',
         userPrompt,
         selectedModel,
-        searchTerm
+        searchTerm,
+        chatHistory
       );
       if (!chatStream) {
         return;

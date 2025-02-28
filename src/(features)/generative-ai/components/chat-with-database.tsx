@@ -21,7 +21,7 @@ const ChatWithDatabase = () => {
               You are chatting with:
             </span>
             <Spinner isLoading={isLoading} />
-            <p className='text-orange-600 text-lg italic'>
+            <p className='text-blue-600 text-lg italic'>
               {selectedRAGDatabase?.ingestion_description}
             </p>
           </div>
