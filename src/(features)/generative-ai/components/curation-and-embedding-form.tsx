@@ -135,7 +135,7 @@ const CurationAndEmbeddingForm = () => {
         <div className='flex flex-row space-x-2 p-2 text-sm w-full'>
           {/* Available Columns */}
           <div className='p-2 border rounded shadow w-1/2 bg-white'>
-            <div className='border-b-2 font-bold p-1'>
+            <div className='border-b-2 font-bold text-blue-500 p-1'>
               Available Data Points
             </div>
             <div className='overflow-y-auto max-h-80 p-2'>
@@ -174,7 +174,7 @@ const CurationAndEmbeddingForm = () => {
           {/* Data Display */}
           <div className='flex flex-col space-y-3 p-2 border rounded shadow bg-white w-1/2'>
             <div className='flex flex-row justify-between border-b-2 p-1 '>
-              <span className='font-bold'>Data</span>
+              <span className='font-bold text-blue-500'>Preview</span>
               <div className='flex flex-row space-x-2 items-center '>
                 <CircleArrowLeft
                   onClick={() => changeRecord(true)}
@@ -198,7 +198,7 @@ const CurationAndEmbeddingForm = () => {
         {/* Curation Prompt */}
         <div className='flex flex-col space-y-3 m-2 p-2 border rounded shadow bg-white'>
           <div className='border-b-2 font-bold'>
-            <div>Curation prompt</div>
+            <span className='text-blue-500'>Curation prompt</span>
           </div>
           <FormField
             control={form.control}

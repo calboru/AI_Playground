@@ -19,6 +19,7 @@ import { pull } from 'langchain/hub';
 import { Document } from '@langchain/core/documents';
 import { AskLLMAction } from './ask-llm-action';
 import { ExchangeRateAgent } from './ollama-agents/agents';
+import { ChatWithDatabasePrompt } from '@/lib/prompts';
 
 const embeddings = new OllamaEmbeddings({
   model: 'mxbai-embed-large',
@@ -41,12 +42,12 @@ export const ChatWithDatabaseAction = async (
     const filter = searchTerm
       ? [{ operator: 'match', field: 'text', value: searchTerm }]
       : {};
-
+    console.log('FILTER', filter);
     // Base instruction with prompt moved to the end
     const instruction = `Analyze the user's prompt to determine if it requires Ollama tools/agents to respond User's prompt: "${prompt}"`;
 
     const res2 = (await AskLLMAction(
-      'llama3.2', // Or 'llama3.2' if available
+      'llama3.2',
       instruction,
       [ExchangeRateAgent],
       false,
@@ -99,7 +100,9 @@ export const ChatWithDatabaseAction = async (
       ]),
     });
 
-    const chainResponse = await ragChainWithSources.stream(prompt);
+    const wrappedPrompt = ChatWithDatabasePrompt(prompt);
+
+    const chainResponse = await ragChainWithSources.stream(wrappedPrompt);
 
     return new ReadableStream({
       async start(controller: ReadableStreamDefaultController<Uint8Array>) {

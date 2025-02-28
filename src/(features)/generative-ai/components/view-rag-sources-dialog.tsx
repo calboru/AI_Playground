@@ -25,11 +25,16 @@ const ViewRAGSourcesDialog = ({
   isLoading: boolean;
 }) => {
   const { ragSources } = useChatWithDatabase();
-  console.log(ragSources);
+
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button type='button' disabled={isLoading || disabled} size='lg'>
+        <Button
+          type='button'
+          variant='ghost'
+          disabled={isLoading || disabled}
+          className='text-blue-500 '
+        >
           {!isLoading && <Search />}
           <Spinner isLoading={isLoading} />
           View Sources

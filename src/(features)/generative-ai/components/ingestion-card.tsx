@@ -40,26 +40,6 @@ const IngestionCard = ({ data }: { data: IngestionType }) => {
           Total Documents: {data.total_documents.toLocaleString()}
         </span>
       </div>
-
-      <div className='flex-row  w-full  flex   justify-between '>
-        <div></div>
-        <div>
-          {/* <Button
-            type='button'
-            onClick={() => {
-              resetCursor();
-              selectIngestion(data);
-              resetSearch();
-            }}
-            size='sm'
-            variant='outline'
-            className='bg-orange-500 hover:bg-orange-600 text-white hover:text-white'
-          >
-            <SearchCode />
-            Search Documents
-          </Button> */}
-        </div>
-      </div>
     </div>
   );
 };

@@ -1,15 +1,36 @@
 'use client';
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import React, {
+  createContext,
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useContext,
+  useState,
+} from 'react';
 import { useInfiniteRAGDatabases } from './infinite-rag-databases-context';
 import { ChatWithDatabaseAction } from '../actions/chat-with-database-action';
 import { jsonToMarkdown } from '../actions/convert-json-to-markdown';
 import { useLLM } from '@/context/llm-context';
 
+// Define the chat entry type for history
+interface ChatEntry {
+  prompt: string;
+  response: string;
+  timestamp: string; // Optional: for sorting or display purposes
+}
+
+// Update the context interface to include chat history
 interface IChatWithDatabaseContext {
   chatResponse: string;
-  ask: (userPrompt: string, searchTerm?: string) => void;
+  userPrompt: string;
+  setUserPrompt: Dispatch<SetStateAction<string>>;
+  searchTerm: string;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
+  ask: () => void;
   isThinking: boolean;
   ragSources: string[];
+  chatHistory: ChatEntry[];
+  clearChatHistory: () => void; // Optional: to reset history
 }
 
 const ChatWithDatabaseContext = createContext<
@@ -30,12 +51,17 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [chatResponse, setChatResponse] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<ChatEntry[]>([]); // Initialize chat history
   const { selectedRAGDatabase } = useInfiniteRAGDatabases();
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [ragSources, setRagSources] = useState<string[]>([]);
   const { selectedModel } = useLLM();
+  const [userPrompt, setUserPrompt] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const handleAsk = async (userPrompt: string, searchTerm?: string) => {
+  console.log('history', chatHistory);
+
+  const handleAsk = async () => {
     try {
       setIsThinking(true);
       setChatResponse('');
@@ -50,6 +76,7 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
       }
       const reader = chatStream.getReader();
       const decoder = new TextDecoder('utf8');
+      let fullResponse = '';
 
       for (;;) {
         const { done, value } = await reader.read();
@@ -64,9 +91,23 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
         }
 
         if (decodedValue?.answer) {
+          fullResponse += decodedValue.answer;
           setChatResponse((prev) => prev + decodedValue.answer);
         }
       }
+
+      // Add the prompt and response to chat history
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          prompt: userPrompt,
+          response: fullResponse,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      setUserPrompt(''); // Clear the prompt after submission
+      setSearchTerm(''); // Clear the search term
       setIsThinking(false);
     } catch (error) {
       setIsThinking(false);
@@ -74,9 +115,27 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Function to clear chat history
+  const clearChatHistory = () => {
+    setChatHistory([]);
+    setChatResponse('');
+    setRagSources([]);
+  };
+
   return (
     <ChatWithDatabaseContext.Provider
-      value={{ ragSources, isThinking, chatResponse, ask: handleAsk }}
+      value={{
+        ragSources,
+        isThinking,
+        chatResponse,
+        ask: handleAsk,
+        userPrompt,
+        setUserPrompt,
+        searchTerm,
+        setSearchTerm,
+        chatHistory, // Provide chat history
+        clearChatHistory, // Provide clear history function
+      }}
     >
       {children}
     </ChatWithDatabaseContext.Provider>
