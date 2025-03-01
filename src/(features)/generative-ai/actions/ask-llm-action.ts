@@ -35,11 +35,11 @@ export const AskLLMAction = async (
         )[tool.function.name];
 
         if (functionToCall) {
-          console.log('Calling function:', tool.function.name);
-          console.log('Arguments:', tool.function.arguments);
+          console.log('Calling TOOL:', tool.function.name);
+          console.log('TOOL Arguments:', tool.function.arguments);
 
           output = await functionToCall(tool.function.arguments);
-          console.log('Function output:', output);
+          console.log('TOOL output:', output);
 
           combinedMessages.push(initialCall.message);
           combinedMessages.push({
@@ -48,7 +48,7 @@ export const AskLLMAction = async (
           });
           toolResponses.push(output.toString());
         } else {
-          console.log('Function', tool.function.name, 'not found');
+          console.log('TOOL', tool.function.name, 'not found');
         }
       }
     } else {

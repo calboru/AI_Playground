@@ -21,13 +21,18 @@ import {
 import { pull } from 'langchain/hub';
 import { Document } from '@langchain/core/documents';
 import { AskLLMAction } from './ask-llm-action';
-import { ExchangeRateAgent } from './ollama-agents/agents';
+import { CurrencyConverterTool } from './ollama-agents/agents';
 import {
   ChatWithDatabasePrompt,
   QuestionContextualizationPrompt,
+  ToolInvokingPrompt,
 } from '@/lib/prompts';
 import { ChatEntry } from '../types/chat-entry-type';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { IterableReadableStream } from '@langchain/core/dist/utils/stream';
+import { IRAGResponse } from '../types/rag-response-type';
+
+const RAG_LLM_MODEL_NAME = process?.env?.RAG_LLM_MODEL_NAME ?? 'command-r7b';
 
 const embeddings = new OllamaEmbeddings({
   model: 'mxbai-embed-large',
@@ -42,12 +47,12 @@ const createVectorStore = (indexName: string) => {
 const agentChain = async (
   userPrompt: string
 ): Promise<Document<Record<string, unknown>>[]> => {
-  const instruction = `Analyze the user's prompt to determine if it requires Ollama tools/agents to respond User's prompt: "${userPrompt}"`;
+  const instruction = ToolInvokingPrompt(userPrompt);
   const toolResponseDocuments: Document<Record<string, unknown>>[] = [];
   const res2 = (await AskLLMAction(
     'llama3.2',
     instruction,
-    [ExchangeRateAgent],
+    [CurrencyConverterTool],
     false,
     true
   )) as string[];
@@ -67,11 +72,10 @@ const agentChain = async (
 
 const questionContextualizationChain = async (
   userPrompt: string,
-  selectedLLM: string,
   chatHistory: ChatEntry[]
 ): Promise<string> => {
   const llm = new Ollama({
-    model: selectedLLM,
+    model: RAG_LLM_MODEL_NAME,
     temperature: 0,
     maxRetries: 2,
     baseUrl: process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
@@ -103,6 +107,61 @@ const questionContextualizationChain = async (
   return conceptualizedPrompt;
 };
 
+const retrievalAugmentedGenerationChainWithSources = async (
+  llm: Ollama,
+  indexName: string,
+  userPrompt: string,
+  searchTerm?: string,
+  chatHistory: ChatEntry[] = [],
+  stream = true
+): Promise<IterableReadableStream<unknown> | IRAGResponse | null> => {
+  const filter = searchTerm
+    ? [{ operator: 'match', field: 'text', value: searchTerm }]
+    : {};
+
+  const vectorStore = createVectorStore(indexName);
+
+  const contextualizedPrompt = await questionContextualizationChain(
+    userPrompt,
+    chatHistory
+  );
+
+  const toolResponseDocuments = await agentChain(contextualizedPrompt);
+
+  const promptTemplate = await pull<ChatPromptTemplate>('rlm/rag-prompt');
+  const ragChainWithSources = RunnableMap.from({
+    context: vectorStore.asRetriever(
+      { filter },
+      { k: 10, includeMetadata: true }
+    ),
+    question: new RunnablePassthrough(),
+  }).assign({
+    answer: RunnableSequence.from([
+      (input) => {
+        const contextDocs = input.context as Document<
+          Record<string, unknown>
+        >[];
+        const allDocs = [...contextDocs, ...toolResponseDocuments];
+        return {
+          context: formatDocumentsAsString(allDocs),
+          question: input.question,
+        };
+      },
+      promptTemplate,
+      llm,
+      new StringOutputParser(),
+    ]),
+  });
+
+  const wrappedPrompt = ChatWithDatabasePrompt(contextualizedPrompt);
+
+  if (stream) {
+    return ragChainWithSources.stream(wrappedPrompt);
+  } else {
+    return ragChainWithSources.invoke(wrappedPrompt);
+  }
+};
+
 export const ChatWithDatabaseAction = async (
   indexName: string,
   prompt: string,
@@ -118,55 +177,18 @@ export const ChatWithDatabaseAction = async (
       baseUrl: process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
     });
 
-    const vectorStore = createVectorStore(indexName);
-    const filter = searchTerm
-      ? [{ operator: 'match', field: 'text', value: searchTerm }]
-      : {};
-    console.log('FILTER', filter);
-
-    const toolResponseDocuments = await agentChain(prompt);
-
-    const contextualizedPrompt = await questionContextualizationChain(
+    const chainResponse = await retrievalAugmentedGenerationChainWithSources(
+      llm,
+      indexName,
       prompt,
-      selectedLLM,
-      chatHistory
+      searchTerm,
+      chatHistory,
+      true
     );
-
-    console.log('CONCEPTUALIZED PROMPT', contextualizedPrompt);
-
-    const promptTemplate = await pull<ChatPromptTemplate>('rlm/rag-prompt');
-    const ragChainWithSources = RunnableMap.from({
-      context: vectorStore.asRetriever(
-        { filter },
-        { k: 10, includeMetadata: true }
-      ),
-      question: new RunnablePassthrough(),
-    }).assign({
-      answer: RunnableSequence.from([
-        (input) => {
-          const contextDocs = input.context as Document<
-            Record<string, unknown>
-          >[];
-          const allDocs = [...contextDocs, ...toolResponseDocuments];
-
-          return {
-            context: formatDocumentsAsString(allDocs),
-            question: input.question,
-          };
-        },
-        promptTemplate,
-        llm,
-        new StringOutputParser(),
-      ]),
-    });
-
-    const wrappedPrompt = ChatWithDatabasePrompt(contextualizedPrompt);
-
-    const chainResponse = await ragChainWithSources.stream(wrappedPrompt);
 
     return new ReadableStream({
       async start(controller: ReadableStreamDefaultController<Uint8Array>) {
-        for await (const chunk of chainResponse) {
+        for await (const chunk of chainResponse as IterableReadableStream<unknown>) {
           controller.enqueue(new TextEncoder().encode(JSON.stringify(chunk)));
         }
         controller.close();

@@ -35,18 +35,25 @@ export const SearchInFoodAndDrugAdministrationDatabaseAgent = {
   },
 };
 
-export const ExchangeRateAgent = {
+export const CurrencyConverterTool = {
   type: 'function',
   function: {
-    name: 'ExchangeRateAgent',
-    description: 'Returns the rate of the given three letter currency code',
+    name: 'CurrencyConverterTool',
+    description:
+      'Converts an amount between two currencies using the given three-letter currency codes.',
     parameters: {
       type: 'object',
-      required: ['ThreeLetterCurrencyCode'],
+      required: ['currencyFrom', 'currencyTo'],
       properties: {
-        ThreeLetterCurrencyCode: {
+        currencyFrom: {
           type: 'string',
-          description: 'Three letter currency code',
+          description:
+            'Three letter ISO_4217 currency code of the source currency',
+        },
+        currencyTo: {
+          type: 'string',
+          description:
+            'Three letter ISO_4217 currency code of the target currency',
         },
       },
     },
