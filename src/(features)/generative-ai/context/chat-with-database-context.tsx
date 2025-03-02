@@ -57,6 +57,7 @@ export const ChatWithDatabaseProvider: React.FC<{ children: ReactNode }> = ({
 
   const handleAsk = async () => {
     try {
+      setRagSources([]);
       setIsThinking(true);
       setChatResponse('');
 

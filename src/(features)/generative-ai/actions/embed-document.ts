@@ -169,6 +169,7 @@ const curateWithUserPrompt = async (
       },
     ],
     stream: false,
+    tools: [],
   });
   return answer.message.content;
 };

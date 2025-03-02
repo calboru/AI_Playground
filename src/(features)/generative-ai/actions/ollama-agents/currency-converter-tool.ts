@@ -4,7 +4,9 @@ interface CurrencyCodeParams {
 }
 
 export const CurrencyConverterTool = async (params: CurrencyCodeParams) => {
-  console.log(params);
+  if (params?.currencyFrom?.length !== 3 || params?.currencyTo?.length !== 3) {
+    return `Currency codes must be three`;
+  }
 
   const url = `https://hexarate.paikama.co/api/rates/latest/${params?.currencyFrom?.trim()}?target=${params?.currencyTo?.trim()}`;
 
@@ -14,7 +16,7 @@ export const CurrencyConverterTool = async (params: CurrencyCodeParams) => {
     const data = await response.json();
     const rate = +data?.data?.mid;
 
-    if (data?.status_code === 200) {
+    if (rate > 0) {
       console.log(
         `As of today 1 ${params?.currencyFrom} is ${rate} ${params?.currencyTo}`
       );

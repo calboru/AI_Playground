@@ -13,17 +13,16 @@ import {
 } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { formatDocumentsAsString } from 'langchain/util/document';
-import { Ollama } from '@langchain/ollama';
+import { Ollama, ChatOllama } from '@langchain/ollama';
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from '@langchain/core/prompts';
-import { pull } from 'langchain/hub';
+
 import { Document } from '@langchain/core/documents';
 import { AskLLMAction } from './ask-llm-action';
 import { CurrencyConverterTool } from './ollama-agents/agents';
 import {
-  ChatWithDatabasePrompt,
   QuestionContextualizationPrompt,
   ToolInvokingPrompt,
 } from '@/lib/prompts';
@@ -107,8 +106,34 @@ const questionContextualizationChain = async (
   return conceptualizedPrompt;
 };
 
+const chatHistoryCleanupChain = async (
+  llm: ChatOllama,
+  chatHistory: ChatEntry[],
+  userPrompt: string
+) => {
+  const flattenedChatHistory =
+    Array.from(
+      chatHistory
+        .reduce((map, entry) => {
+          // Use prompt as the key, overwrite with the latest entry
+          map.set(entry.prompt, entry);
+          return map;
+        }, new Map<string, ChatEntry>())
+        .values() // Get deduplicated entries
+    )
+      .map((entry) => ({ system: entry.prompt, human: entry.response }))
+      .map((entry) => `System: ${entry.system}\nHuman: ${entry.human}`)
+      .join('\n\n') ?? '';
+
+  const cleanChatHistoryPrompt = `Based on the latest user's prompt, filter the chat history to remove all entries unrelated to it. Preserve the exact format of the chat history, including carriage returns, as provided. If no entries are relevant, return an empty response ("").
+  Latest user's prompt: ${userPrompt}
+  Chat history: ${flattenedChatHistory}`;
+  const res = await llm.invoke(cleanChatHistoryPrompt);
+  return res.content.toString();
+};
+
 const retrievalAugmentedGenerationChainWithSources = async (
-  llm: Ollama,
+  llm: ChatOllama,
   indexName: string,
   userPrompt: string,
   searchTerm?: string,
@@ -118,7 +143,7 @@ const retrievalAugmentedGenerationChainWithSources = async (
   const filter = searchTerm
     ? [{ operator: 'match', field: 'text', value: searchTerm }]
     : {};
-
+  console.log('filter', filter);
   const vectorStore = createVectorStore(indexName);
 
   const contextualizedPrompt = await questionContextualizationChain(
@@ -128,22 +153,47 @@ const retrievalAugmentedGenerationChainWithSources = async (
 
   const toolResponseDocuments = await agentChain(contextualizedPrompt);
 
-  const promptTemplate = await pull<ChatPromptTemplate>('rlm/rag-prompt');
+  // Replace the default rlm/rag-prompt with the improved custom prompt template
+  const promptTemplate = ChatPromptTemplate.fromMessages([
+    [
+      'system',
+      `
+      You are a precise, factual assistant tasked with answering the user's latest question based solely on the provided context, which includes documents and relevant chat history. Follow these steps:
+
+      1. **Evaluate Context**: Review the full context—documents and chat history entries—and assess each item's relevance to the question: "{question}". Mentally score relevance (0 to 1) based on how directly it provides specific, actionable information. Prioritize items that explicitly address the question over vague or unrelated content.  
+      2. **Filter Relevant Items**: Select only the most relevant items (documents and chat history) that offer clear, accurate details for the question. Discard anything unrelated, ambiguous, or unhelpful.  
+      3. **Answer Concisely**: Using only the selected items, provide a short, cohesive answer. Do not add external knowledge, assumptions, or unnecessary details beyond the context.  
+      4. **Handle Insufficient Context**: If no items are relevant or lack sufficient detail, respond: "I cannot answer your question due to insufficient or unrelated context. Please ask something relevant to the provided information."  
+      5. **Stay Brief**: Deliver a clear, concise response without elaboration unless specifically requested.  
+      `,
+    ],
+    ['human', 'Context: {context}\nQuestion: {question}\nAnswer:'],
+  ]);
+
+  const cleanedChatHistory = await chatHistoryCleanupChain(
+    llm,
+    chatHistory,
+    userPrompt
+  );
+
   const ragChainWithSources = RunnableMap.from({
-    context: vectorStore.asRetriever(
-      { filter },
-      { k: 10, includeMetadata: true }
-    ),
+    context: vectorStore.asRetriever({ k: 5, filter }),
     question: new RunnablePassthrough(),
   }).assign({
     answer: RunnableSequence.from([
-      (input) => {
-        const contextDocs = input.context as Document<
-          Record<string, unknown>
-        >[];
-        const allDocs = [...contextDocs, ...toolResponseDocuments];
+      async (input) => {
+        const contextDocs =
+          (input.context as Document<Record<string, unknown>>[]) ?? [];
+
         return {
-          context: formatDocumentsAsString(allDocs),
+          context: formatDocumentsAsString([
+            ...toolResponseDocuments,
+            ...contextDocs,
+          ])
+            .concat('\n\n  ')
+            .concat('**Chat History:**  \n\n')
+            .concat(cleanedChatHistory),
+
           question: input.question,
         };
       },
@@ -153,12 +203,10 @@ const retrievalAugmentedGenerationChainWithSources = async (
     ]),
   });
 
-  const wrappedPrompt = ChatWithDatabasePrompt(contextualizedPrompt);
-
   if (stream) {
-    return ragChainWithSources.stream(wrappedPrompt);
+    return ragChainWithSources.stream(contextualizedPrompt);
   } else {
-    return ragChainWithSources.invoke(wrappedPrompt);
+    return ragChainWithSources.invoke(contextualizedPrompt);
   }
 };
 
@@ -170,12 +218,14 @@ export const ChatWithDatabaseAction = async (
   chatHistory: ChatEntry[] = []
 ): Promise<ReadableStream<Uint8Array> | undefined> => {
   try {
-    const llm = new Ollama({
+    const llm = new ChatOllama({
       model: selectedLLM,
       temperature: 0,
       maxRetries: 2,
       baseUrl: process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
     });
+
+    console.log('SELECTED LLM', selectedLLM);
 
     const chainResponse = await retrievalAugmentedGenerationChainWithSources(
       llm,
