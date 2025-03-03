@@ -6,7 +6,9 @@ import { InfiniteIngestionsAction } from '../actions/infinite-ingestions-action'
 interface IInfiniteIngestionsContext {
   ingestions: IngestionType[];
   isLoading: boolean;
-  fetchMore: () => Promise<void>;
+  fetchMore: (resetCursor?: boolean) => Promise<void>;
+  resetDate: Date;
+  resetCursor: () => void;
 }
 
 const InfiniteIngestionsContext = createContext<
@@ -19,9 +21,21 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [ingestions, setIngestions] = useState<IngestionType[]>([]);
   const [cursor, setCursor] = useState(0);
+  const [resetDate, setResetDate] = useState<Date>(new Date());
 
-  const fetchMore = async () => {
+  const handleResetCursor = () => {
+    setCursor(0);
+    setIngestions([]);
+    setResetDate(new Date());
+  };
+
+  const fetchMore = async (resetCursor?: boolean) => {
     try {
+      if (resetCursor) {
+        setCursor(0);
+        setIngestions([]);
+      }
+
       setIsLoading(true);
 
       const payload = await InfiniteIngestionsAction(cursor);
@@ -39,6 +53,8 @@ const InfiniteIngestionsProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <InfiniteIngestionsContext.Provider
       value={{
+        resetDate,
+        resetCursor: handleResetCursor,
         ingestions,
         fetchMore,
         isLoading,

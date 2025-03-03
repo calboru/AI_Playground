@@ -10,6 +10,8 @@ import React, {
 import { BulkIndexCSVAction } from '../actions/bulk-index-csv-action';
 import { useToast } from '@/hooks/use-toast';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
+import { useInfiniteIngestions } from './infinite-ingestions-context';
+import { DeleteIndexAction } from '../actions/delete-index-action';
 
 interface IIngestionContext {
   ingestionDialogOpen: boolean;
@@ -17,8 +19,10 @@ interface IIngestionContext {
   isLoading: boolean;
   bulkIndexCSV: (
     ingestionDescription: string,
-    ingestionFiles: File[]
+    ingestionFiles: File[],
+    existingIndexName: string
   ) => Promise<void>;
+  deleteIngestion: (indexName: string) => Promise<void>;
 }
 
 const IngestionContext = createContext<IIngestionContext | undefined>(
@@ -31,24 +35,45 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [ingestionDialogOpen, setIngestionDialogOpen] = useState(false);
 
-  const { selectIngestion, resetCursor } = useInfiniteIngestionContent();
+  const { selectIngestion } = useInfiniteIngestionContent();
+  const { resetCursor } = useInfiniteIngestionContent();
+
+  const { resetCursor: resetCursorForInfiniteIngestions } =
+    useInfiniteIngestions();
 
   const { toast } = useToast();
 
+  const handleDeleteIngestion = async (indexName: string) => {
+    try {
+      await DeleteIndexAction(indexName);
+      resetCursorForInfiniteIngestions();
+    } catch (error) {
+      console.log(error);
+      toast({
+        variant: 'destructive',
+        title: 'Unable to delete index',
+        description: JSON.stringify(error),
+      });
+    }
+  };
+
   const handleBulkIndexCSV = async (
     ingestionDescription: string,
-    ingestionFiles: File[]
+    ingestionFiles: File[],
+    existingIndexName: string
   ) => {
     try {
       setIsLoading(true);
       const response = await BulkIndexCSVAction(
         ingestionDescription,
-        ingestionFiles
+        ingestionFiles,
+        existingIndexName
       );
       setIsLoading(false);
       setIngestionDialogOpen(false);
       selectIngestion(response.payload);
       resetCursor();
+      resetCursorForInfiniteIngestions();
 
       toast({
         title: 'Ingestion',
@@ -68,6 +93,7 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <IngestionContext.Provider
       value={{
+        deleteIngestion: handleDeleteIngestion,
         isLoading,
         bulkIndexCSV: handleBulkIndexCSV,
         ingestionDialogOpen,

@@ -50,7 +50,8 @@ const BulkIndex = async (indexName: string, data: unknown[]) => {
 
 export const BulkIndexCSVAction = async (
   ingestionDescription: string,
-  ingestionFiles: File[]
+  ingestionFiles: File[],
+  existingIndexName: string
 ): Promise<GenericResponse<IngestionType, undefined>> => {
   const response: GenericResponse<IngestionType, undefined> = {
     success: false,
@@ -70,9 +71,12 @@ export const BulkIndexCSVAction = async (
     async (resolve, reject) => {
       const data: unknown[] = [];
       const cleanDescription = ingestionDescription?.trim() || 'No description';
-      const indexName = 'raw-' + faker.string.alpha(10).toLowerCase();
+      const indexName =
+        existingIndexName?.length === 0
+          ? 'raw-' + faker.string.alpha(10).toLowerCase()
+          : existingIndexName;
       response.payload.index_name = indexName;
-
+      console.log('indexName====>:', indexName);
       await InitializeIndexes();
 
       const onlyCSVFiles = ingestionFiles.filter(
@@ -120,15 +124,27 @@ export const BulkIndexCSVAction = async (
 
               await BulkIndex(indexName, data);
 
-              await ESClient.index({
+              await ESClient.update({
                 index: 'ingestions',
-                document: {
-                  ingestion_description: cleanDescription,
-                  files: onlyCSVFiles.map((file) => file.name),
-                  index_name: indexName,
-                  created_at: new Date(),
-                  total_documents: data.length,
+                id: indexName,
+                body: {
+                  script: {
+                    source: 'ctx._source.created_at = params.newDate',
+                    lang: 'painless',
+                    params: {
+                      newDate: new Date().toISOString(), // Use ISO format for consistency
+                    },
+                  },
+                  upsert: {
+                    ingestion_description: cleanDescription,
+                    files: onlyCSVFiles.map((file) => file.name),
+                    index_name: indexName,
+                    id: indexName,
+                    created_at: new Date().toISOString(),
+                    total_documents: data.length,
+                  },
                 },
+                retry_on_conflict: 3, // Handle concurrency conflicts
               });
 
               console.log(

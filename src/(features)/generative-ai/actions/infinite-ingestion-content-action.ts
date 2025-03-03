@@ -10,7 +10,6 @@ export const InfiniteIngestionContentAction = async (
   try {
     const pageSize = 100;
 
-    console.log('this is the index name', indexName);
     const payload: InfinitePayload<unknown> = {
       documents: [],
       cursor: 0,
@@ -25,6 +24,7 @@ export const InfiniteIngestionContentAction = async (
       index: indexName,
       size: pageSize,
       from: page,
+      track_total_hits: true,
       query: {
         match_all: {},
       },
@@ -36,6 +36,7 @@ export const InfiniteIngestionContentAction = async (
     const docs = res.hits.hits.map((hit) => {
       const source = hit._source as IngestionType;
       source.id = hit._id as string;
+      source.total_documents = totalDocuments;
       return source;
     });
 

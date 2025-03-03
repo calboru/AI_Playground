@@ -18,11 +18,16 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileText, Link, ClipboardList, Trash2 } from 'lucide-react';
 import { useIngestion } from '@/(features)/generative-ai/context/ingestion-context';
 import Spinner from './spinner';
+import { useInfiniteIngestionContent } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
 
 // Define our form schema using Zod.
 const ingestionSchema = z.object({
   description: z.string().nonempty('Description is required'),
   // files is an array of File objects and must contain at least one file.
+  files: z.array(z.any()).min(1, 'At least one file is required'),
+});
+
+const ingestionUpdateSchema = z.object({
   files: z.array(z.any()).min(1, 'At least one file is required'),
 });
 
@@ -32,6 +37,8 @@ type IngestionFormValues = z.infer<typeof ingestionSchema>;
 const IngestionUploadDialog = () => {
   const { openIngestionDialog, ingestionDialogOpen, bulkIndexCSV, isLoading } =
     useIngestion();
+
+  const { selectedIngestion, newIngestion } = useInfiniteIngestionContent();
 
   // Reference for the hidden file input.
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +51,9 @@ const IngestionUploadDialog = () => {
     watch,
     formState: { errors },
   } = useForm<IngestionFormValues>({
-    resolver: zodResolver(ingestionSchema),
+    resolver: zodResolver(
+      selectedIngestion ? ingestionUpdateSchema : ingestionSchema
+    ),
     defaultValues: {
       description: '',
       files: [],
@@ -76,43 +85,57 @@ const IngestionUploadDialog = () => {
   };
 
   const onSubmit = async (data: IngestionFormValues) => {
-    await bulkIndexCSV(data.description, data.files);
+    await bulkIndexCSV(
+      data.description,
+      data.files,
+      selectedIngestion?.index_name ?? ''
+    );
   };
 
-  const handleOpenChange = async () => {
-    openIngestionDialog(!ingestionDialogOpen);
-    if (ingestionDialogOpen) {
-      // refreshData();
-    } else {
-      //CLEaR form
-      setValue('files', []);
-      setValue('description', '');
-    }
+  const handleOpenChange = async (open: boolean) => {
+    openIngestionDialog(open);
+    setValue('files', []);
+    setValue('description', '');
   };
 
   return (
     <Dialog open={ingestionDialogOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          onClick={() => openIngestionDialog(!ingestionDialogOpen)}
+          onClick={() => {
+            newIngestion();
+          }}
           className='grow mt-1 mr-3 ml-3 bg-blue-600 hover:bg-blue-700 text-white'
         >
           <Upload />
           <span>Create new ingestion</span>
         </Button>
       </DialogTrigger>
+
       <DialogContent className='min-w-[700px]'>
         <DialogHeader>
-          <DialogTitle>Create Ingestion</DialogTitle>
+          <DialogTitle>
+            {selectedIngestion
+              ? 'Add new sources to the existing ingestion'
+              : 'Create Ingestion'}
+          </DialogTitle>
           <DialogDescription>
-            Sources let generative AI base its responses on the information that
-            matters most to you.
+            {selectedIngestion ? (
+              <span className='text-orange-500 font-bold'>
+                {selectedIngestion.ingestion_description}
+              </span>
+            ) : (
+              <span className=''>
+                Sources let generative AI base its responses on the information
+                that matters most to you.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className='w-full mx-auto border bg-white shadow rounded-2xl p-6'>
             {/* Description Field */}
-            <div className='grid w-full'>
+            <div className={`grid w-full ${selectedIngestion ? 'hidden' : ''}`}>
               <Label
                 className='font-bold items-center flex'
                 htmlFor='description'

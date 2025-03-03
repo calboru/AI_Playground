@@ -14,11 +14,14 @@ import { IngestionType } from '../types/ingestion-type';
 interface IInfiniteIngestionContentContext {
   content: unknown[];
   isLoading: boolean;
-  fetchMore: () => Promise<void>;
+  fetchMore: (resetCursor?: boolean) => Promise<void>;
   resetCursor: () => void;
   cursor: number;
   selectIngestion: (data: IngestionType) => void;
   selectedIngestion: IngestionType | undefined;
+  newIngestion: () => void;
+  totalDocumentsInIndex: number;
+  resetDate: Date;
 }
 
 const InfiniteIngestionContentContext = createContext<
@@ -34,6 +37,9 @@ const InfiniteIngestionContentProvider: React.FC<{ children: ReactNode }> = ({
   const [selectedIngestion, setSelectedIngestion] = useState<
     IngestionType | undefined
   >();
+  const [resetDate, setResetDate] = useState<Date>(new Date());
+
+  const [totalDocumentsInIndex, setTotalDocumentsInIndex] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -47,33 +53,37 @@ const InfiniteIngestionContentProvider: React.FC<{ children: ReactNode }> = ({
   const handleResetCursor = () => {
     setCursor(0);
     setContent([]);
+    setResetDate(new Date());
   };
 
-  const fetchMore = useCallback(async () => {
-    try {
-      if (
-        !selectedIngestion ||
-        content?.length >= selectedIngestion.total_documents
-      )
-        return;
+  const fetchMore = useCallback(
+    async (resetCursor: boolean = false) => {
+      if (resetCursor) {
+        handleResetCursor();
+      }
 
-      setIsLoading(true);
+      try {
+        setIsLoading(true);
 
-      const payload = await InfiniteIngestionContentAction(
-        cursor,
-        selectedIngestion?.index_name
-      );
+        const payload = await InfiniteIngestionContentAction(
+          resetCursor ? 0 : cursor,
+          selectedIngestion?.index_name ?? ''
+        );
 
-      setContent((prev) => [...prev, ...payload.documents]);
+        setTotalDocumentsInIndex(payload.totalDocuments);
 
-      setCursor(payload.cursor);
+        setContent((prev) => [...prev, ...payload.documents]);
 
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      console.log(error);
-    }
-  }, [content?.length, cursor, selectedIngestion]);
+        setCursor(payload.cursor);
+
+        setIsLoading(false);
+      } catch (error) {
+        setIsLoading(false);
+        console.log(error);
+      }
+    },
+    [content?.length, cursor, selectedIngestion]
+  );
 
   const handleSelectIngestion = (data: IngestionType) => {
     setSelectedIngestion(data);
@@ -85,6 +95,8 @@ const InfiniteIngestionContentProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <InfiniteIngestionContentContext.Provider
       value={{
+        totalDocumentsInIndex,
+        newIngestion: () => setSelectedIngestion(undefined),
         selectedIngestion,
         selectIngestion: handleSelectIngestion,
         cursor,
@@ -92,6 +104,7 @@ const InfiniteIngestionContentProvider: React.FC<{ children: ReactNode }> = ({
         content,
         fetchMore,
         isLoading,
+        resetDate,
       }}
     >
       {children}

@@ -10,14 +10,15 @@ import { useInView } from 'framer-motion';
 const IngestionSources = () => {
   const ref = useRef(null);
   const isInView = useInView(ref);
-  const { ingestions, isLoading, fetchMore } = useInfiniteIngestions();
+  const { ingestions, isLoading, fetchMore, resetDate } =
+    useInfiniteIngestions();
 
   useEffect(() => {
     (async () => {
       if (!isInView) return;
       await fetchMore();
     })();
-  }, [isInView]);
+  }, [isInView, resetDate, resetDate]);
 
   return (
     <section className='rounded-xl max-w-xs flex flex-col space-y-2 m-1 bg-white w-full border border-slate-300'>

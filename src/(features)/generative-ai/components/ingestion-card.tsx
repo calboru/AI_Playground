@@ -25,7 +25,7 @@ const IngestionCard = ({ data }: { data: IngestionType }) => {
             Ingestion Date: {new Date(data.created_at).toLocaleString()}
           </span>
           <div>
-            <IngestionCardMenu />
+            <IngestionCardMenu ingestion={data} />
           </div>
         </div>
       </div>
@@ -37,7 +37,7 @@ const IngestionCard = ({ data }: { data: IngestionType }) => {
 
       <div className='flex justify-start border-t  w-full'>
         <span className='text-xs   p-2 text-gray-800'>
-          Total Documents: {data.total_documents.toLocaleString()}
+          id: {data.index_name}
         </span>
       </div>
     </div>

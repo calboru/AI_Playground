@@ -4,22 +4,28 @@ import IngestionContentCard from './intestion-content-card';
 import { useInView } from 'framer-motion';
 
 const InfiniteIngestionContent = () => {
-  const { content, fetchMore, selectedIngestion } =
-    useInfiniteIngestionContent();
+  const {
+    content,
+    fetchMore,
+    selectedIngestion,
+    totalDocumentsInIndex,
+    resetDate,
+  } = useInfiniteIngestionContent();
   const ref = useRef(null);
   const isInView = useInView(ref);
 
   useEffect(() => {
     (async () => {
       if (!isInView) return;
-      await fetchMore();
+      await fetchMore(false);
     })();
-  }, [isInView, selectedIngestion, fetchMore]);
+  }, [isInView, selectedIngestion, fetchMore, resetDate]);
 
   return (
     <div className='flex w-full space-y-2 flex-col '>
       {content.map((data, idx) => (
         <IngestionContentCard
+          totalDocumentsInIndex={totalDocumentsInIndex}
           data={data}
           key={(data as { id?: string | number })?.id ?? idx}
           index={idx}

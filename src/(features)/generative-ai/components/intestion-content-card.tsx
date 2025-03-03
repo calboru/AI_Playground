@@ -1,15 +1,15 @@
 import React from 'react';
-import { useInfiniteIngestionContent } from '../context/infinite-ingestion-content-context';
 import { useQueryStringSearch } from '../context/querystring-search-context';
 
 const IngestionContentCard = ({
   data,
   index,
+  totalDocumentsInIndex,
 }: {
   data: unknown;
   index: number;
+  totalDocumentsInIndex: number;
 }) => {
-  const { selectedIngestion } = useInfiniteIngestionContent();
   const { searchIsPerformed, totalDocuments } = useQueryStringSearch();
 
   const relevanceScore = (data as { relevance_score: number })?.relevance_score;
@@ -30,9 +30,9 @@ const IngestionContentCard = ({
           <span> {(index + 1).toLocaleString()}</span>
           <span>of</span>
           <span>
-            {!searchIsPerformed
-              ? selectedIngestion?.total_documents.toLocaleString()
-              : totalDocuments.toLocaleString()}
+            {searchIsPerformed
+              ? totalDocuments
+              : totalDocumentsInIndex.toLocaleString()}
           </span>
         </div>
       </div>
