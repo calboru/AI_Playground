@@ -20,16 +20,15 @@ import {
 } from '@langchain/core/prompts';
 
 import { Document } from '@langchain/core/documents';
-import { AskLLMAction } from './ask-llm-action';
-import { CurrencyConverterTool } from './ollama-agents/agents';
 import {
+  CleanChatHistoryPrompt,
   QuestionContextualizationPrompt,
-  ToolInvokingPrompt,
 } from '@/lib/prompts';
 import { ChatEntry } from '../types/chat-entry-type';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { IterableReadableStream } from '@langchain/core/dist/utils/stream';
 import { IRAGResponse } from '../types/rag-response-type';
+import { agentExecutor } from './ollama-agents/tool-lama';
 
 const RAG_LLM_MODEL_NAME = process?.env?.RAG_LLM_MODEL_NAME ?? 'command-r7b';
 
@@ -41,32 +40,6 @@ const embeddings = new OllamaEmbeddings({
 const createVectorStore = (indexName: string) => {
   const clientArgs: ElasticClientArgs = { client: ESClient, indexName };
   return new ElasticVectorSearch(embeddings, clientArgs);
-};
-
-const agentChain = async (
-  userPrompt: string
-): Promise<Document<Record<string, unknown>>[]> => {
-  const instruction = ToolInvokingPrompt(userPrompt);
-  const toolResponseDocuments: Document<Record<string, unknown>>[] = [];
-  const res2 = (await AskLLMAction(
-    'llama3.2',
-    instruction,
-    [CurrencyConverterTool],
-    false,
-    true
-  )) as string[];
-
-  console.log('AGENT CALL RESPONSE', res2);
-
-  for (const response of res2) {
-    toolResponseDocuments.push({
-      pageContent: response,
-      metadata: {
-        source: 'Ollama Agent',
-      },
-    });
-  }
-  return toolResponseDocuments;
 };
 
 const questionContextualizationChain = async (
@@ -107,10 +80,16 @@ const questionContextualizationChain = async (
 };
 
 const chatHistoryCleanupChain = async (
-  llm: ChatOllama,
   chatHistory: ChatEntry[],
   userPrompt: string
 ) => {
+  const llm = new Ollama({
+    model: RAG_LLM_MODEL_NAME,
+    temperature: 0,
+    maxRetries: 2,
+    baseUrl: process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
+  });
+
   const flattenedChatHistory =
     Array.from(
       chatHistory
@@ -125,11 +104,11 @@ const chatHistoryCleanupChain = async (
       .map((entry) => `System: ${entry.system}\nHuman: ${entry.human}`)
       .join('\n\n') ?? '';
 
-  const cleanChatHistoryPrompt = `Based on the latest user's prompt, filter the chat history to remove all entries unrelated to it. Preserve the exact format of the chat history, including carriage returns, as provided. If no entries are relevant, return an empty response ("").
-  Latest user's prompt: ${userPrompt}
-  Chat history: ${flattenedChatHistory}`;
-  const res = await llm.invoke(cleanChatHistoryPrompt);
-  return res.content.toString();
+  const res = await llm.invoke(
+    CleanChatHistoryPrompt(userPrompt, flattenedChatHistory)
+  );
+  console.log('CLEANED CHAT HISTORY', res);
+  return res;
 };
 
 const retrievalAugmentedGenerationChainWithSources = async (
@@ -151,27 +130,25 @@ const retrievalAugmentedGenerationChainWithSources = async (
     chatHistory
   );
 
-  const toolResponseDocuments = await agentChain(contextualizedPrompt);
+  // const toolResponseDocuments = await agentChain(contextualizedPrompt);
 
   // Replace the default rlm/rag-prompt with the improved custom prompt template
   const promptTemplate = ChatPromptTemplate.fromMessages([
     [
       'system',
       `
-      You are a precise, factual assistant tasked with answering the user's latest question based solely on the provided context, which includes documents and relevant chat history. Follow these steps:
-
-      1. **Evaluate Context**: Review the full context—documents and chat history entries—and assess each item's relevance to the question: "{question}". Mentally score relevance (0 to 1) based on how directly it provides specific, actionable information. Prioritize items that explicitly address the question over vague or unrelated content.  
-      2. **Filter Relevant Items**: Select only the most relevant items (documents and chat history) that offer clear, accurate details for the question. Discard anything unrelated, ambiguous, or unhelpful.  
-      3. **Answer Concisely**: Using only the selected items, provide a short, cohesive answer. Do not add external knowledge, assumptions, or unnecessary details beyond the context.  
-      4. **Handle Insufficient Context**: If no items are relevant or lack sufficient detail, respond: "I cannot answer your question due to insufficient or unrelated context. Please ask something relevant to the provided information."  
-      5. **Stay Brief**: Deliver a clear, concise response without elaboration unless specifically requested.  
+      You are a precise, factual assistant tasked with answering the user's latest question based exclusively on the provided context, which includes documents and relevant chat history. Do not use any pre-trained knowledge or external information beyond what is explicitly given. Follow these steps:
+      1. **Evaluate Context**: Review the full provided context—documents and chat history entries—and assess each item’s relevance to the question: "{question}". Assign a mental relevance score (0 to 1) based solely on how directly it delivers specific, actionable information from the context. Prioritize items that explicitly answer the question over those that are vague or off-topic within the given materials.  
+      2. **Filter Relevant Items**: Select only the items from the provided context (documents and chat history) that contain clear, accurate, and directly applicable details for the question. Discard anything within the context that is unrelated, ambiguous, or unhelpful.  
+      3. **Answer Concisely**: Using only the selected items from the provided context, craft a short, cohesive answer. Do not include external knowledge, assumptions, or details not present in the context.  
+      4. **Handle Insufficient Context**: If the provided context contains no relevant items or lacks sufficient detail, respond: "I cannot answer your question due to insufficient or unrelated information in the provided context. Please ask something relevant to the given materials."  
+      5. **Stay Brief**: Provide a clear, concise response based solely on the context, avoiding elaboration unless explicitly requested by the user.
       `,
     ],
-    ['human', 'Context: {context}\nQuestion: {question}\nAnswer:'],
+    ['human', 'Provided Context: {context}\nQuestion: {question}\nAnswer:'],
   ]);
 
   const cleanedChatHistory = await chatHistoryCleanupChain(
-    llm,
     chatHistory,
     userPrompt
   );
@@ -185,14 +162,29 @@ const retrievalAugmentedGenerationChainWithSources = async (
         const contextDocs =
           (input.context as Document<Record<string, unknown>>[]) ?? [];
 
+        const toolResponseDocs = await agentExecutor.invoke({
+          input: input.question as string,
+        });
+
+        const uniqueToolResponses = Array.from(
+          new Set(toolResponseDocs.map((doc) => doc.pageContent))
+        ).join('\n\n');
+
+        const contextDocsString = formatDocumentsAsString(contextDocs)
+          .concat('\n\n  ')
+          .concat('**Agent/Tool responses:**  \n\n')
+          .concat(uniqueToolResponses)
+          .concat('**Chat History:**  \n\n')
+          .concat(cleanedChatHistory);
+
+        console.log({
+          userPrompt,
+          contextualizedPrompt,
+          chatHistoryAndRetrievedContextCombinedContext: contextDocsString,
+        });
+
         return {
-          context: formatDocumentsAsString([
-            ...toolResponseDocuments,
-            ...contextDocs,
-          ])
-            .concat('\n\n  ')
-            .concat('**Chat History:**  \n\n')
-            .concat(cleanedChatHistory),
+          context: contextDocsString,
 
           question: input.question,
         };

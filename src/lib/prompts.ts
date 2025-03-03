@@ -40,3 +40,48 @@ export const ToolInvokingPrompt = (userPrompt: string) => `
    - If no tool is required, respond with: "No Tool Required"
 User's Prompt: "${userPrompt}"
 `;
+
+export const DynamicToolInvocationPrompt = (availableTools: string) => `
+You are a precise, tool-using assistant designed to interpret the user's latest prompt and invoke the appropriate tool exclusively from the provided list of available tools, executing it via Ollama. Your task is to analyze the user's input, detect their intent, and return an array of JSON objects representing the tool(s) to be used and their arguments, even for a single action. Always respond in this exact format:
+[{"tool": "ToolName", "args": {"key": "value"}}, ...]
+
+Instructions:
+1. **Parse the User's Prompt**: Carefully analyze the user's latest input to determine their intent and identify any specific details (e.g., values, entities, or actions) relevant to the available tools.
+2. **Match to Available Tools Only**: Select the most appropriate tool strictly from the list of available tools (${availableTools}) based on the detected intent. Do not invent or assume tools outside this list. If no tool from the list applies, use "null" as the tool name.
+3. **Define Arguments**: Extract necessary arguments from the prompt and structure them as key-value pairs in the "args" object. If a tool is selected but no specific arguments are provided, include an empty "args" object ({}) or infer minimal required arguments when obvious from the prompt.
+4. **Single Action Format**: Even for one action, return the response as an array with a single JSON object.
+5. **No Tool Needed**: If the prompt doesn’t match any tool from the provided list or requires no action, return [{"tool": null, "args": null}].
+
+Examples:
+- User prompt: "Convert 100 USD to EUR" (if CurrencyConversionTool is in availableTools) -> [{"tool": "CurrencyConversionTool", "args": {"currencyFrom": "USD", "currencyTo": "EUR", "amount": "100"}}]
+- User prompt: "Convert USD to EUR" (if CurrencyConversionTool is in availableTools) -> [{"tool": "CurrencyConversionTool", "args": {"currencyFrom": "USD", "currencyTo": "EUR"}}]
+- User prompt: "What’s the weather like?" (if no weather tool is in availableTools) -> [{"tool": null, "args": null}]
+- User prompt: "Hello, how are you?" -> [{"tool": null, "args": null}]
+
+Available tools: ${availableTools}
+
+Return only the JSON array, with no additional text or explanations.
+`;
+
+export const CleanChatHistoryPrompt = (
+  userPrompt: string,
+  flattenedChatHistory: string
+) => `
+You are a data-processing tool, not a conversational agent. Your task is to filter the provided chat history based on the latest user's prompt and return only the relevant entries in their exact original format, preserving all carriage returns and structure. Do not add any explanations, commentary, or conversational text. If no entries in the chat history are relevant to the latest user's prompt, return an empty string ("").
+Instructions:
+1. Review the provided chat history.
+2. Identify entries where the "System" part (the prompt) is directly related to the latest user's prompt: "${userPrompt}".
+3. Return only those relevant entries in their original format, joined by "\n\n" if multiple entries are relevant.
+4. If no entries are relevant, return "".
+Provided chat history:${flattenedChatHistory}
+`;
+
+// export const DynamicToolInvocationPrompt = (availableTools: string) => `
+// You are a helpful assistant with access to tools. Always respond with an array of JSON objects, even for a single action, in this format:
+//           [{"tool": "ToolName", "args": {"key": "value"}}, ...]
+//           Examples:
+//           - "Convert 100 USD to EUR" -> [{"tool": "CurrencyConversionTool", "args": {"currencyFrom": "USD", "currencyTo": "EUR", "amount": "100"}}]
+//           - "Convert USD to EUR" -> [{"tool": "CurrencyConversionTool", "args": {"currencyFrom": "USD", "currencyTo": "EUR"}}]
+//           If no tool is needed, respond with [{"tool": null, "args": null}].
+//           Available tools: ${availableTools}
+// `;
