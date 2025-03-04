@@ -18,6 +18,7 @@ interface IInfiniteRAGDatabasesContext {
   selectRAGDatabase: Dispatch<SetStateAction<RAGDatabaseType | undefined>>;
   resetCursor: () => void;
   selectedRAGDatabase: RAGDatabaseType | undefined;
+  resetDate: Date;
 }
 
 const InfiniteRAGDatabasesContext = createContext<
@@ -33,6 +34,7 @@ const InfiniteRAGDatabasesProvider: React.FC<{ children: ReactNode }> = ({
   const [selectedRAGDatabase, setSelectedRAGDatabase] = useState<
     RAGDatabaseType | undefined
   >();
+  const [resetDate, setResetDate] = useState(new Date());
 
   const fetchMore = async () => {
     try {
@@ -50,11 +52,18 @@ const InfiniteRAGDatabasesProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  const handleResetCursor = () => {
+    setResetDate(new Date());
+    setCursor(0);
+    setRAGDatabases([]);
+  };
+
   return (
     <InfiniteRAGDatabasesContext.Provider
       value={{
+        resetDate,
         selectedRAGDatabase: selectedRAGDatabase,
-        resetCursor: () => setCursor(0),
+        resetCursor: handleResetCursor,
         selectRAGDatabase: setSelectedRAGDatabase,
         RAGDatabases,
         fetchMore,

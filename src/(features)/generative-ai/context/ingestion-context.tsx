@@ -11,7 +11,7 @@ import { BulkIndexCSVAction } from '../actions/bulk-index-csv-action';
 import { useToast } from '@/hooks/use-toast';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 import { useInfiniteIngestions } from './infinite-ingestions-context';
-import { DeleteIndexAction } from '../actions/delete-index-action';
+import { DeleteIngestionAction } from '../actions/delete-ingestion-action';
 
 interface IIngestionContext {
   ingestionDialogOpen: boolean;
@@ -45,7 +45,7 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
 
   const handleDeleteIngestion = async (indexName: string) => {
     try {
-      await DeleteIndexAction(indexName);
+      await DeleteIngestionAction(indexName);
       resetCursorForInfiniteIngestions();
     } catch (error) {
       console.log(error);
