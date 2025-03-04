@@ -14,6 +14,7 @@ import { CurateAndEmbedProvider } from '@/(features)/generative-ai/context/curat
 import { InfiniteRAGDatabasesProvider } from '@/(features)/generative-ai/context/infinite-rag-databases-context';
 import { ChatWithDatabaseProvider } from '@/(features)/generative-ai/context/chat-with-database-context';
 import { GenerativeAIProvider } from '@/(features)/generative-ai/context/generative-ai-context';
+import { RAGDatabaseProvider } from '@/(features)/generative-ai/context/rag-database-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -51,7 +52,9 @@ export default function RootLayout({
                         <CurateAndEmbedProvider>
                           <InfiniteRAGDatabasesProvider>
                             <ChatWithDatabaseProvider>
-                              {children}
+                              <RAGDatabaseProvider>
+                                {children}
+                              </RAGDatabaseProvider>
                             </ChatWithDatabaseProvider>
                           </InfiniteRAGDatabasesProvider>
                         </CurateAndEmbedProvider>

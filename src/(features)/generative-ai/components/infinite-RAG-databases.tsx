@@ -8,14 +8,15 @@ import RAGDatabaseCard from './RAG-database-card';
 const InfiniteRAGDatabases = () => {
   const ref = useRef(null);
   const isInView = useInView(ref);
-  const { RAGDatabases, isLoading, fetchMore } = useInfiniteRAGDatabases();
+  const { RAGDatabases, isLoading, fetchMore, resetDate } =
+    useInfiniteRAGDatabases();
 
   useEffect(() => {
     (async () => {
       if (!isInView) return;
       await fetchMore();
     })();
-  }, [isInView]);
+  }, [isInView, resetDate]);
 
   return (
     <section className='rounded-xl shadow-xl max-w-xs flex flex-col space-y-2 m-1 bg-white w-full border border-slate-300'>
