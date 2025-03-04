@@ -19,7 +19,7 @@ const InfiniteIngestionContent = () => {
       if (!isInView) return;
       await fetchMore(false);
     })();
-  }, [isInView, selectedIngestion, fetchMore, resetDate]);
+  }, [isInView, selectedIngestion, resetDate]);
 
   return (
     <div className='flex w-full space-y-2 flex-col '>

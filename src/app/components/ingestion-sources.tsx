@@ -18,7 +18,7 @@ const IngestionSources = () => {
       if (!isInView) return;
       await fetchMore();
     })();
-  }, [isInView, resetDate, resetDate]);
+  }, [isInView, resetDate]);
 
   return (
     <section className='rounded-xl max-w-xs flex flex-col space-y-2 m-1 bg-white w-full border border-slate-300'>
