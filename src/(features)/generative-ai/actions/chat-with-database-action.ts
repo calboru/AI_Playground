@@ -142,7 +142,8 @@ const retrievalAugmentedGenerationChainWithSources = async (
       5. **Stay Brief**: Provide a clear, concise response based solely on the context, avoiding elaboration unless explicitly requested by the user.
       `,
     ],
-    ['human', 'Provided Context: {context}\nQuestion: {question}\nAnswer:'],
+    ['human', 'Provided Context: {context}'],
+    ['human', 'Question: {question}\nAnswer:'],
   ]);
 
   const cleanedChatHistory = await chatHistoryCleanupChain(
@@ -158,7 +159,7 @@ const retrievalAugmentedGenerationChainWithSources = async (
       async (input) => {
         const contextDocs =
           (input.context as Document<Record<string, unknown>>[]) ?? [];
-
+        console.log('CHATTING CONTEXT DOCS', contextDocs);
         const toolResponseDocs = await agentExecutor.invoke({
           input: input.question as string,
         });
@@ -182,7 +183,6 @@ const retrievalAugmentedGenerationChainWithSources = async (
 
         return {
           context: contextDocsString,
-
           question: input.question,
         };
       },

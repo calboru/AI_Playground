@@ -7,11 +7,10 @@ import {
 } from '@langchain/community/vectorstores/elasticsearch';
 import { Document } from '@langchain/core/documents';
 import { ESClient } from '@/clients/elastic-search';
-import { LLMClient } from '@/clients/llm-client';
 import { jsonToMarkdown } from './convert-json-to-markdown';
 import { EmbeddingEventType } from '@/types/embedding-event-type';
 import { faker } from '@faker-js/faker';
-import { EmbeddingPrompt } from '@/lib/prompts';
+import { CurationAction } from './curation-action';
 
 const updateRAGIndex = async (
   indexName: string,
@@ -152,26 +151,15 @@ const cloneEmbeddingEvent = (
 };
 
 const curateWithUserPrompt = async (
-  llmModel: string,
   markdownText: string,
   userPrompt: string
 ) => {
   if (userPrompt?.trim() === '') {
-    console.log('returning markdown text.........');
     return markdownText;
   }
-  const answer = await LLMClient.chat({
-    model: llmModel,
-    messages: [
-      {
-        role: 'user',
-        content: EmbeddingPrompt(markdownText, userPrompt),
-      },
-    ],
-    stream: false,
-    tools: [],
-  });
-  return answer.message.content;
+  const updatedMarkdownText = await CurationAction(markdownText, userPrompt);
+
+  return updatedMarkdownText;
 };
 
 export const EmbedAllDocumentsAction = async (
@@ -252,9 +240,7 @@ export const EmbedAllDocumentsAction = async (
             const { _source } = hit;
             const markdownText = jsonToMarkdown(_source, selectedColumns);
 
-            console.log(EmbeddingPrompt(markdownText, userPompt));
             const curatedOrOriginalContent = await curateWithUserPrompt(
-              llmModel,
               markdownText,
               userPompt
             );
