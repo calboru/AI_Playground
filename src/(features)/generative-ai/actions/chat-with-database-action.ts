@@ -130,9 +130,6 @@ const retrievalAugmentedGenerationChainWithSources = async (
     chatHistory
   );
 
-  // const toolResponseDocuments = await agentChain(contextualizedPrompt);
-
-  // Replace the default rlm/rag-prompt with the improved custom prompt template
   const promptTemplate = ChatPromptTemplate.fromMessages([
     [
       'system',

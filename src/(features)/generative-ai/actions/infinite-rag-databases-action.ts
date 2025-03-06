@@ -14,6 +14,13 @@ export const InfiniteRAGDatabasesAction = async (page: number) => {
       totalDocuments: 0,
     };
 
+    const indexExists = await ESClient.indices.exists({
+      index: 'rag-index',
+    });
+    if (!indexExists) {
+      return payload;
+    }
+
     const searchParams = {
       index: 'rag-index',
       size: pageSize,

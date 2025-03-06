@@ -8,18 +8,13 @@ import React, {
   SetStateAction,
   Dispatch,
 } from 'react';
-import { AskLLMAction } from '../actions/ask-llm-action';
 import { useLLM } from '@/context/llm-context';
 import { EmbeddingEventType } from '@/types/embedding-event-type';
 import { EmbedAllDocumentsAction } from '../actions/embed-document';
 import { useQueryStringSearch } from './querystring-search-context';
 import { useInfiniteIngestionContent } from './infinite-ingestion-content-context';
 import { useToast } from '@/hooks/use-toast';
-import { EmbeddingPrompt } from '@/lib/prompts';
-import {
-  SearchInEuropeanMedicinesAgencyDatabaseAgent,
-  SearchInFoodAndDrugAdministrationDatabaseAgent,
-} from '../actions/ollama-agents/agents';
+import { CurationAction } from '../actions/curation-action';
 
 interface ICurateAndEmbedContext {
   prompt: string;
@@ -66,28 +61,18 @@ export const CurateAndEmbedProvider: React.FC<{ children: ReactNode }> = ({
   const { searchTerm } = useQueryStringSearch();
   const { selectedIngestion } = useInfiniteIngestionContent();
 
-  const tools = [
-    SearchInFoodAndDrugAdministrationDatabaseAgent,
-    SearchInEuropeanMedicinesAgencyDatabaseAgent,
-  ];
-
   const handleAsk = async (markdownText: string, prompt: string) => {
     try {
       setIsLoading(true);
       setPrompt(prompt.trim());
       setResponse('');
 
-      const res = (await AskLLMAction(
-        selectedModel,
-        EmbeddingPrompt(markdownText, prompt),
-        tools,
-        true
-      )) as AbortableAsyncIterator<ChatResponse>;
+      const updatedMarkdownText = await CurationAction(markdownText, prompt);
 
-      setIterator(res); // Store the iterator for aborting later
-
-      for await (const chunk of res) {
-        setResponse((prev) => prev + chunk.message.content);
+      // Simulate a delay to mimic processing time
+      for (let i = 0; i < updatedMarkdownText.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        setResponse((prev) => prev + updatedMarkdownText[i]);
       }
 
       setIsLoading(false);
