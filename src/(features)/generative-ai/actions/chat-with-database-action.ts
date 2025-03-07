@@ -28,7 +28,7 @@ import { ChatEntry } from '../types/chat-entry-type';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { IterableReadableStream } from '@langchain/core/dist/utils/stream';
 import { IRAGResponse } from '../types/rag-response-type';
-import { agentExecutor } from './ollama-agents/tool-lama';
+import agentManager from './ollama-agents/agent';
 
 const RAG_LLM_MODEL_NAME = process?.env?.RAG_LLM_MODEL_NAME ?? 'command-r7b';
 
@@ -155,23 +155,40 @@ const retrievalAugmentedGenerationChainWithSources = async (
     context: vectorStore.asRetriever({ k: 5, filter }),
     question: new RunnablePassthrough(),
   }).assign({
+    // Step 1: Call agents (if needed) based on users prompt
     answer: RunnableSequence.from([
       async (input) => {
         const contextDocs =
           (input.context as Document<Record<string, unknown>>[]) ?? [];
-        console.log('CHATTING CONTEXT DOCS', contextDocs);
-        const toolResponseDocs = await agentExecutor.invoke({
-          input: input.question as string,
-        });
+        const contextString = contextDocs
+          .map((doc) => doc.pageContent)
+          .join('\n\n');
 
-        const uniqueToolResponses = Array.from(
-          new Set(toolResponseDocs.map((doc) => doc.pageContent))
-        ).join('\n\n');
+        const toolResponses = await agentManager.invoke({
+          input: userPrompt.concat('\n ').concat(contextString),
+        });
+        console.log('HELLOOOO', toolResponses);
+
+        const toolResponseDoc = new Document({
+          pageContent: `Tool Responses: ${toolResponses.output}`,
+          metadata: {
+            source: 'Agent',
+          },
+        });
+        contextDocs.push(toolResponseDoc);
+
+        return {
+          context: contextDocs,
+          question: input.question,
+        };
+      },
+      async (input) => {
+        const contextDocs =
+          (input.context as Document<Record<string, unknown>>[]) ?? [];
+        console.log('CONTEXT DOCS', contextDocs);
 
         const contextDocsString = formatDocumentsAsString(contextDocs)
           .concat('\n\n  ')
-          .concat('**Agent/Tool responses:**  \n\n')
-          .concat(uniqueToolResponses)
           .concat('**Chat History:**  \n\n')
           .concat(cleanedChatHistory);
 
