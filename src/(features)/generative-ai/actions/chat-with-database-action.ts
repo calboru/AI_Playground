@@ -167,7 +167,6 @@ const retrievalAugmentedGenerationChainWithSources = async (
         const toolResponses = await agentManager.invoke({
           input: userPrompt.concat('\n ').concat(contextString),
         });
-        console.log('HELLOOOO', toolResponses);
 
         const toolResponseDoc = new Document({
           pageContent: `Tool Responses: ${toolResponses.output}`,

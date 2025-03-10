@@ -1,8 +1,6 @@
+import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { Document } from '@langchain/core/documents';
-import { Tool } from '../../types/tool-lama-types';
-
-export const CurrencyConversionInputSchema = z.object({
+const CurrencyConversionInputSchema = z.object({
   currencyFrom: z.string().trim().min(1, 'currencyFrom must not be empty'),
   currencyTo: z.string().trim().min(1, 'currencyTo must not be empty'),
   amount: z.preprocess(
@@ -11,37 +9,21 @@ export const CurrencyConversionInputSchema = z.object({
   ),
 });
 
-export type CurrencyConversionInputType = z.infer<
+type CurrencyConversionInputType = z.infer<
   typeof CurrencyConversionInputSchema
 >;
 
-// Define the CurrencyConversionTool class
-export class CurrencyConversionTool
-  implements Tool<CurrencyConversionInputType>
-{
-  public name = 'CurrencyConversionTool';
-  public description =
-    'Converts an amount from one currency to another using the latest exchange rate. Expects {{currencyFrom: string, currencyTo: string, amount?: string}}';
-  public inputSchema: z.ZodType<CurrencyConversionInputType> =
-    CurrencyConversionInputSchema as z.ZodType<CurrencyConversionInputType>;
-
-  async invoke(
-    input: CurrencyConversionInputType
-  ): Promise<Document<Record<string, unknown>>[]> {
-    const parsedInput = this.inputSchema.safeParse(input);
+export const CurrencyConvertTool = tool(
+  async (input: CurrencyConversionInputType) => {
+    const parsedInput = CurrencyConversionInputSchema.safeParse(input);
     if (!parsedInput.success) {
       const errorMessage = `Invalid input: ${parsedInput.error.errors
         .map((e) => `${e.path.join('.')}: ${e.message}`)
         .join(', ')}`;
       console.error(errorMessage);
-      return [
-        {
-          pageContent: 'Invalid arguments for the CurrencyConversionTool',
-          metadata: { source: `Ollama Agent: ${this.name}` },
-        },
-      ];
+      console.log(input, errorMessage);
+      return 'Invalid arguments for the CurrencyConversionTool';
     }
-
     const { currencyFrom, currencyTo, amount } = parsedInput.data;
     const url = `https://hexarate.paikama.co/api/rates/latest/${currencyFrom}?target=${currencyTo}`;
 
@@ -57,23 +39,20 @@ export class CurrencyConversionTool
           amountNum * rate
         ).toFixed(2)} ${currencyTo} as of today`;
         console.log(result);
-        return [
-          {
-            pageContent: result,
-            metadata: { source: `Ollama Agent: ${this.name}` },
-          },
-        ];
+        return result;
       } else {
-        return [
-          {
-            pageContent: `No exchange rate found for ${currencyFrom} to ${currencyTo}`,
-            metadata: { source: `Ollama Agent: ${this.name}` },
-          },
-        ];
+        return `No exchange rate found for ${currencyFrom} to ${currencyTo}`;
       }
     } catch (error) {
       console.error('Unable to fetch exchange rate data:', error);
       throw error;
     }
+  },
+
+  {
+    name: 'CurrencyConvertTool',
+    description:
+      'Converts an amount from one currency to another using the latest exchange rate. Accepts {{currencyFrom: string, currencyTo: string, amount?: string}} and returns the converted amount in a descriptive string.',
+    schema: CurrencyConversionInputSchema,
   }
-}
+);
