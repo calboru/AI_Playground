@@ -64,6 +64,7 @@ export const IngestionProvider: React.FC<{ children: ReactNode }> = ({
   ) => {
     try {
       setIsLoading(true);
+
       const response = await BulkIndexCSVAction(
         ingestionDescription,
         ingestionFiles,

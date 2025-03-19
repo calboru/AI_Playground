@@ -15,6 +15,7 @@ import { InfiniteRAGDatabasesProvider } from '@/(features)/generative-ai/context
 import { ChatWithDatabaseProvider } from '@/(features)/generative-ai/context/chat-with-database-context';
 import { GenerativeAIProvider } from '@/(features)/generative-ai/context/generative-ai-context';
 import { RAGDatabaseProvider } from '@/(features)/generative-ai/context/rag-database-context';
+import { PDFExtractionProvider } from '@/(features)/generative-ai/context/pdf-extraction-context';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -53,7 +54,9 @@ export default function RootLayout({
                           <InfiniteRAGDatabasesProvider>
                             <ChatWithDatabaseProvider>
                               <RAGDatabaseProvider>
-                                {children}
+                                <PDFExtractionProvider>
+                                  {children}
+                                </PDFExtractionProvider>
                               </RAGDatabaseProvider>
                             </ChatWithDatabaseProvider>
                           </InfiniteRAGDatabasesProvider>

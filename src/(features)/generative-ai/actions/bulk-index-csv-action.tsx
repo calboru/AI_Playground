@@ -69,7 +69,6 @@ export const BulkIndexCSVAction = async (
 
   return new Promise<GenericResponse<IngestionType, undefined>>(
     async (resolve, reject) => {
-      const data: unknown[] = [];
       const cleanDescription = ingestionDescription?.trim() || 'No description';
       const indexName =
         existingIndexName?.length === 0
@@ -83,103 +82,127 @@ export const BulkIndexCSVAction = async (
         (file) => file.type === 'text/csv'
       );
 
-      onlyCSVFiles.forEach(async (file: File) => {
-        const cleanFileName = file?.name?.trim() || 'Unknown file';
-        const csvText = await file.text();
-
-        if (csvText?.length === 0) {
-          response.error = 'Empty file';
-          response.success = false;
-          reject(response);
-          return;
-        }
-
-        parseString(csvText, {
-          headers: (headers) =>
-            headers.map((h) => h?.toLowerCase().replace(/[^a-z0-9]/g, '_')),
-        })
-          .on('error', (error) => {
-            console.error('CSV parsing error:', error);
-            response.error = error.message;
-            response.success = false;
-            reject(response);
-          })
-          .on('data', (row) => {
-            const rowWithFileName = {
-              ...row,
-              file_name: cleanFileName,
-              index_name: indexName,
-            };
-            data.push(rowWithFileName);
-          })
-          .on('end', async () => {
-            try {
-              if (data.length === 0) {
-                console.log('No data found in CSV.');
-                response.success = false;
-                response.error = 'No data found in CSV.';
-                resolve(response);
-                return;
-              }
-
-              await BulkIndex(indexName, data);
-
-              await ESClient.update({
-                index: 'ingestions',
-                id: indexName,
-                body: {
-                  script: {
-                    source: 'ctx._source.created_at = params.newDate',
-                    lang: 'painless',
-                    params: {
-                      newDate: new Date().toISOString(), // Use ISO format for consistency
-                    },
-                  },
-                  upsert: {
-                    ingestion_description: cleanDescription,
-                    files: onlyCSVFiles.map((file) => file.name),
-                    index_name: indexName,
-                    id: indexName,
-                    created_at: new Date().toISOString(),
-                    total_documents: data.length,
-                  },
-                },
-                retry_on_conflict: 3, // Handle concurrency conflicts
-              });
-
-              console.log(
-                `Successfully indexed ${data.length} records, index: ${indexName}`
-              );
-
-              await ESClient.indices.refresh({ index: indexName });
-
-              response.success = true;
-              response.payload.created_at = new Date().toLocaleString();
-              response.payload.total_documents = data.length;
-              response.payload.files = onlyCSVFiles.map((file) => file.name);
-
-              await delay(3000);
-              resolve(response);
-            } catch (error) {
-              response.error = JSON.stringify(error);
-              response.success = false;
-
-              //delete index no need to keep junk user can ingest again.
-              //delete ingestion content
-              await ESClient.indices.delete({ index: indexName });
-
-              //delete ingestion project
-              await ESClient.deleteByQuery({
-                index: 'ingestions',
-                query: {
-                  match: { index_name: indexName },
-                },
-              });
-
-              reject(error);
-            }
-          });
-      });
+      processCSVFiles(
+        onlyCSVFiles,
+        response,
+        reject,
+        indexName,
+        resolve,
+        cleanDescription
+      );
     }
   );
 };
+function processCSVFiles(
+  onlyCSVFiles: File[],
+  response: GenericResponse<IngestionType, undefined>,
+  reject: (reason?: unknown) => void,
+  indexName: string,
+
+  resolve: (
+    value:
+      | GenericResponse<IngestionType, undefined>
+      | PromiseLike<GenericResponse<IngestionType, undefined>>
+  ) => void,
+  cleanDescription: string
+) {
+  const data: unknown[] = [];
+
+  onlyCSVFiles.forEach(async (file: File) => {
+    const cleanFileName = file?.name?.trim() || 'Unknown file';
+    const csvText = await file.text();
+
+    if (csvText?.length === 0) {
+      response.error = 'Empty file';
+      response.success = false;
+      reject(response);
+      return;
+    }
+
+    parseString(csvText, {
+      headers: (headers) =>
+        headers.map((h) => h?.toLowerCase().replace(/[^a-z0-9]/g, '_')),
+    })
+      .on('error', (error) => {
+        console.error('CSV parsing error:', error);
+        response.error = error.message;
+        response.success = false;
+        reject(response);
+      })
+      .on('data', (row) => {
+        const rowWithFileName = {
+          ...row,
+          file_name: cleanFileName,
+          index_name: indexName,
+        };
+        data.push(rowWithFileName);
+      })
+      .on('end', async () => {
+        try {
+          if (data.length === 0) {
+            console.log('No data found in CSV.');
+            response.success = false;
+            response.error = 'No data found in CSV.';
+            resolve(response);
+            return;
+          }
+
+          await BulkIndex(indexName, data);
+
+          await ESClient.update({
+            index: 'ingestions',
+            id: indexName,
+            body: {
+              script: {
+                source: 'ctx._source.created_at = params.newDate',
+                lang: 'painless',
+                params: {
+                  newDate: new Date().toISOString(), // Use ISO format for consistency
+                },
+              },
+              upsert: {
+                ingestion_description: cleanDescription,
+                files: onlyCSVFiles.map((file) => file.name),
+                index_name: indexName,
+                id: indexName,
+                created_at: new Date().toISOString(),
+                total_documents: data.length,
+              },
+            },
+            retry_on_conflict: 3, // Handle concurrency conflicts
+          });
+
+          console.log(
+            `Successfully indexed ${data.length} records, index: ${indexName}`
+          );
+
+          await ESClient.indices.refresh({ index: indexName });
+
+          response.success = true;
+          response.payload.created_at = new Date().toLocaleString();
+          response.payload.total_documents = data.length;
+          response.payload.files = onlyCSVFiles.map((file) => file.name);
+
+          await delay(3000);
+          resolve(response);
+        } catch (error) {
+          response.error = JSON.stringify(error);
+          response.success = false;
+
+          //delete index no need to keep junk user can ingest again.
+          //delete ingestion content
+          await ESClient.indices.delete({ index: indexName });
+
+          //delete ingestion project
+          await ESClient.deleteByQuery({
+            index: 'ingestions',
+            query: {
+              match: { index_name: indexName },
+            },
+          });
+
+          reject(error);
+        }
+      });
+  });
+}

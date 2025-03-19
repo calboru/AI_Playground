@@ -15,7 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Link, ClipboardList, Trash2 } from 'lucide-react';
+import { Upload, Trash2 } from 'lucide-react';
 import { useIngestion } from '@/(features)/generative-ai/context/ingestion-context';
 import Spinner from './spinner';
 import { useInfiniteIngestionContent } from '@/(features)/generative-ai/context/infinite-ingestion-content-context';
@@ -189,10 +189,10 @@ const IngestionUploadDialog = () => {
             </div>
 
             {/* Additional Source Options: Google Docs, Website, Copied Text */}
-            <div className='mt-4 grid grid-cols-3 gap-3'>
+            {/* <div className='mt-4 grid grid-cols-3 gap-3'>
               <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
                 <FileText className='w-6 h-6 text-gray-600' />
-                <p className='text-xs text-gray-600 mt-1'>Google Docs</p>
+                <p className='text-xs text-gray-600 mt-1'>PDF</p>
               </div>
               <div className='bg-gray-100 p-4 rounded-lg flex flex-col items-center'>
                 <Link className='w-6 h-6 text-gray-600' />
@@ -202,7 +202,7 @@ const IngestionUploadDialog = () => {
                 <ClipboardList className='w-6 h-6 text-gray-600' />
                 <p className='text-xs text-gray-600 mt-1'>Copied text</p>
               </div>
-            </div>
+            </div> */}
 
             {/* File Count and Preview */}
             <div className='mt-4 text-gray-500 text-xs flex justify-between'>
